@@ -1,0 +1,23 @@
+{
+  "metrics": {
+    "MAE": 64.52,
+    "RMSE": 78.22,
+    "R2": 0.597
+  },
+  "models": [
+    {
+      "name": "ARIMA",
+      "rmse": 89.17
+    },
+    {
+      "name": "Random Forest",
+      "rmse": 78.22
+    },
+    {
+      "name": "LSTM",
+      "rmse": 71.18
+    }
+  ],
+  "project": "Passenger Flow Forecasting Demo",
+  "lastUpdated": "2026-09-19 17:06:24"
+}

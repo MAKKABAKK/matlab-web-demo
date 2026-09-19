@@ -1,0 +1,595 @@
+{
+  "schemaVersion": "2.1",
+  "id": "heat-diffusion",
+  "title": "Heat Diffusion",
+  "eyebrow": "MATLAB CODE CASE",
+  "description": "Approximate two-dimensional heat diffusion, track thermal energy, and connect time-step choice with numerical stability.",
+  "version": "20260919-170632",
+  "lastUpdated": "2026-09-19 17:06:32",
+  "i18n": {
+    "zh-Hant": {
+      "title": "熱擴散模擬",
+      "eyebrow": "MATLAB 程式碼案例",
+      "description": "近似二維熱擴散、追蹤熱能變化，並連結時間步長選擇與數值穩定性。"
+    }
+  },
+  "artifacts": [
+    {
+      "id": "results",
+      "kind": "json",
+      "file": "data/results.json"
+    },
+    {
+      "id": "code-main",
+      "kind": "matlab-code",
+      "file": "code/heat_diffusion_main.m",
+      "label": "heat_diffusion_main.m"
+    },
+    {
+      "id": "code-simulate-heat",
+      "kind": "matlab-code",
+      "file": "code/simulate_heat_diffusion_demo.m",
+      "label": "simulate_heat_diffusion_demo.m"
+    },
+    {
+      "id": "code-generate-plots",
+      "kind": "matlab-code",
+      "file": "code/create_heat_figures.m",
+      "label": "create_heat_figures.m"
+    },
+    {
+      "id": "plot-heat-snapshots",
+      "kind": "plot",
+      "file": "plots/heat_snapshots.png",
+      "label": "Heat Diffusion Snapshots",
+      "alt": "Sequence of heat maps showing a concentrated hot region spreading and cooling over simulation steps",
+      "caption": "Snapshots turn the finite-difference update into a visible process: the peak falls while heat spreads across neighboring cells.",
+      "generatedBy": "code-generate-plots",
+      "i18n": {
+        "zh-Hant": {
+          "label": "熱擴散快照",
+          "alt": "一系列熱圖，顯示集中的高溫區域隨模擬步驟擴散並降溫",
+          "caption": "快照將有限差分更新轉為可見過程：峰值下降，同時熱量向相鄰網格擴散。"
+        }
+      }
+    },
+    {
+      "id": "plot-temperature-surface",
+      "kind": "plot",
+      "file": "plots/temperature_surface.png",
+      "label": "Temperature Surface",
+      "alt": "Three-dimensional surface plot of the simulated temperature field at a selected time step",
+      "caption": "The surface view emphasizes the height and spatial width of the temperature peak after diffusion.",
+      "generatedBy": "code-generate-plots",
+      "i18n": {
+        "zh-Hant": {
+          "label": "溫度曲面",
+          "alt": "顯示所選時間步之模擬溫度場的三維曲面圖",
+          "caption": "曲面視圖凸顯擴散後溫度峰值的高度與空間寬度。"
+        }
+      }
+    },
+    {
+      "id": "plot-energy-decay",
+      "kind": "plot",
+      "file": "plots/energy_decay.png",
+      "label": "Thermal Energy Decay",
+      "alt": "Line chart showing normalized thermal energy and peak temperature over simulation steps",
+      "caption": "Energy and peak-temperature histories summarize how the field changes between stored snapshots.",
+      "generatedBy": "code-generate-plots",
+      "i18n": {
+        "zh-Hant": {
+          "label": "熱能衰減",
+          "alt": "顯示正規化熱能與峰值溫度隨模擬步驟變化的折線圖",
+          "caption": "熱能與峰值溫度的歷程，概括了各儲存快照之間的溫度場變化。"
+        }
+      }
+    },
+    {
+      "id": "plot-stability-comparison",
+      "kind": "plot",
+      "file": "plots/stability_comparison.png",
+      "label": "Numerical Stability Comparison",
+      "alt": "Comparison of stable and unstable heat-diffusion runs using different time-step ratios",
+      "caption": "Stable settings diffuse smoothly, while an excessive explicit time step produces oscillation or rapid numerical growth.",
+      "generatedBy": "code-generate-plots",
+      "i18n": {
+        "zh-Hant": {
+          "label": "數值穩定性比較",
+          "alt": "比較採用不同時間步長比率之穩定與不穩定熱擴散模擬的圖表",
+          "caption": "穩定設定會平順擴散；過大的顯式時間步長則會造成振盪或快速數值增長。"
+        }
+      }
+    }
+  ],
+  "sections": [
+    {
+      "id": "overview",
+      "title": "Code Case Overview",
+      "shortTitle": "Overview",
+      "summary": "Connect a physical diffusion process with its discrete approximation and diagnostic metrics.",
+      "i18n": {
+        "zh-Hant": {
+          "title": "程式碼案例概覽",
+          "shortTitle": "概覽",
+          "summary": "串連物理擴散過程、離散近似方法與診斷指標。"
+        }
+      },
+      "blocks": [
+        {
+          "type": "text",
+          "eyebrow": "CASE PURPOSE",
+          "title": "Turn the heat equation into an inspectable simulation",
+          "paragraphs": [
+            "This code case places a localized hot region on a two-dimensional grid and advances the heat equation with an explicit finite-difference update.",
+            "Plots and metrics show both the physical story of spreading heat and the numerical story of choosing a stable time step."
+          ],
+          "i18n": {
+            "zh-Hant": {
+              "eyebrow": "案例目的",
+              "title": "將熱方程轉為可檢視的模擬",
+              "paragraphs": [
+                "此程式碼案例在二維網格上放置局部高溫區域，並使用顯式有限差分更新推進熱方程。",
+                "圖表與指標同時呈現熱量擴散的物理故事，以及選擇穩定時間步長的數值故事。"
+              ]
+            }
+          }
+        },
+        {
+          "type": "metrics",
+          "source": "results",
+          "items": [
+            {
+              "label": "Initial peak",
+              "path": "metrics.initialPeak",
+              "format": "number:2",
+              "detail": "Maximum grid temperature at the initial step",
+              "tone": "blue",
+              "i18n": {
+                "zh-Hant": {
+                  "label": "初始峰值溫度",
+                  "detail": "初始步驟中的網格最高溫度"
+                }
+              }
+            },
+            {
+              "label": "Final peak",
+              "path": "metrics.finalPeak",
+              "format": "number:2",
+              "detail": "Maximum grid temperature at the final step",
+              "tone": "cyan",
+              "i18n": {
+                "zh-Hant": {
+                  "label": "最終峰值溫度",
+                  "detail": "最終步驟中的網格最高溫度"
+                }
+              }
+            },
+            {
+              "label": "Half-cooling step",
+              "path": "metrics.halfCoolingStep",
+              "format": "number:0",
+              "detail": "First step where the peak reaches half its initial value",
+              "tone": "violet",
+              "i18n": {
+                "zh-Hant": {
+                  "label": "半冷卻步驟",
+                  "detail": "峰值首次降至初始值一半的步驟"
+                }
+              }
+            },
+            {
+              "label": "Energy retained",
+              "path": "metrics.energyRetainedPercent",
+              "format": "number:1",
+              "detail": "Final thermal energy as a percentage of the initial value",
+              "tone": "green",
+              "i18n": {
+                "zh-Hant": {
+                  "label": "保留熱能百分比",
+                  "detail": "最終熱能占初始值的百分比"
+                }
+              }
+            },
+            {
+              "label": "Stability ratio",
+              "path": "metrics.stabilityRatio",
+              "format": "number:3",
+              "detail": "Dimensionless ratio controlling the explicit update",
+              "tone": "blue",
+              "i18n": {
+                "zh-Hant": {
+                  "label": "穩定性比率",
+                  "detail": "控制顯式更新的無因次比率"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "type": "callout",
+          "tone": "info",
+          "title": "A numerical model has two kinds of questions",
+          "content": "Ask whether the result represents diffusion correctly and whether the discrete update is mathematically stable. A visually smooth plot alone does not answer both.",
+          "i18n": {
+            "zh-Hant": {
+              "title": "數值模型需要回答兩類問題",
+              "content": "既要判斷結果是否正確呈現擴散，也要判斷離散更新在數學上是否穩定；僅靠外觀平滑的圖表無法同時回答兩者。"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "finite-difference-model",
+      "title": "Build the Finite-difference Model",
+      "shortTitle": "Finite Differences",
+      "summary": "Translate neighboring-grid temperature differences into an explicit update rule.",
+      "i18n": {
+        "zh-Hant": {
+          "title": "建立有限差分模型",
+          "shortTitle": "有限差分",
+          "summary": "將相鄰網格的溫度差轉換為顯式更新規則。"
+        }
+      },
+      "blocks": [
+        {
+          "type": "split",
+          "ratio": "1:1",
+          "blocks": [
+            {
+              "type": "code",
+              "artifact": "code-simulate-heat",
+              "title": "Advance the temperature grid",
+              "i18n": {
+                "zh-Hant": {
+                  "title": "推進溫度網格"
+                }
+              }
+            },
+            {
+              "type": "plot",
+              "artifact": "plot-heat-snapshots"
+            }
+          ]
+        },
+        {
+          "type": "steps",
+          "title": "From equation to grid update",
+          "items": [
+            {
+              "title": "Initialize the field",
+              "content": "Place a localized heat peak on the grid and define the boundary behavior.",
+              "i18n": {
+                "zh-Hant": {
+                  "title": "初始化溫度場",
+                  "content": "在網格上放置局部熱峰，並定義邊界行為。"
+                }
+              }
+            },
+            {
+              "title": "Estimate spatial curvature",
+              "content": "Use neighboring cells to approximate the two-dimensional Laplacian at each interior point.",
+              "i18n": {
+                "zh-Hant": {
+                  "title": "估計空間曲率",
+                  "content": "利用相鄰網格近似每個內部點的二維拉普拉斯算子。"
+                }
+              }
+            },
+            {
+              "title": "Advance and record",
+              "content": "Apply the explicit update, then store selected fields and diagnostic summaries.",
+              "i18n": {
+                "zh-Hant": {
+                  "title": "推進並記錄",
+                  "content": "套用顯式更新，再儲存選定的溫度場與診斷摘要。"
+                }
+              }
+            }
+          ],
+          "i18n": {
+            "zh-Hant": {
+              "title": "從方程式到網格更新"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "temperature-field",
+      "title": "Read the Temperature Field",
+      "shortTitle": "Temperature Field",
+      "summary": "Use surface and snapshot views to interpret how peak height and spatial spread evolve.",
+      "i18n": {
+        "zh-Hant": {
+          "title": "解讀溫度場",
+          "shortTitle": "溫度場",
+          "summary": "利用曲面與快照解讀峰值高度及空間擴散如何演變。"
+        }
+      },
+      "blocks": [
+        {
+          "type": "plot",
+          "artifact": "plot-temperature-surface"
+        },
+        {
+          "type": "split",
+          "ratio": "3:2",
+          "blocks": [
+            {
+              "type": "text",
+              "eyebrow": "INTERPRETATION",
+              "title": "Cooling and spreading happen together",
+              "paragraphs": [
+                "The maximum temperature decreases because energy moves away from the initially concentrated region.",
+                "At the same time, a broader area becomes warmer, so peak temperature alone cannot describe the full field."
+              ],
+              "i18n": {
+                "zh-Hant": {
+                  "eyebrow": "結果解讀",
+                  "title": "降溫與擴散同時發生",
+                  "paragraphs": [
+                    "最高溫度會下降，因為能量從初始集中的區域向外移動。",
+                    "同時，更廣的區域會升溫，因此僅看峰值溫度無法描述完整溫度場。"
+                  ]
+                }
+              }
+            },
+            {
+              "type": "callout",
+              "tone": "note",
+              "title": "Keep the color scale consistent",
+              "content": "Snapshot comparisons are easiest to interpret when every heat map uses the same temperature limits.",
+              "i18n": {
+                "zh-Hant": {
+                  "title": "保持一致的色彩範圍",
+                  "content": "每張熱圖使用相同的溫度上下限時，快照之間最容易正確比較。"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "energy-history",
+      "title": "Track Cooling and Energy",
+      "shortTitle": "Energy History",
+      "summary": "Read continuous diagnostic histories and compare the selected published snapshots.",
+      "i18n": {
+        "zh-Hant": {
+          "title": "追蹤冷卻與熱能",
+          "shortTitle": "熱能歷程",
+          "summary": "解讀連續診斷歷程，並比較選定發布的模擬快照。"
+        }
+      },
+      "blocks": [
+        {
+          "type": "plot",
+          "artifact": "plot-energy-decay"
+        },
+        {
+          "type": "table",
+          "title": "Published simulation snapshots",
+          "description": "Selected steps summarize peak temperature and retained energy without loading every simulated grid.",
+          "source": "results",
+          "path": "snapshots",
+          "columns": [
+            {
+              "label": "Step",
+              "key": "step",
+              "format": "number:0",
+              "i18n": {
+                "zh-Hant": {
+                  "label": "步驟"
+                }
+              }
+            },
+            {
+              "label": "Peak temperature",
+              "key": "peak",
+              "format": "number:2",
+              "i18n": {
+                "zh-Hant": {
+                  "label": "峰值溫度"
+                }
+              }
+            },
+            {
+              "label": "Mean temperature",
+              "key": "mean",
+              "format": "number:2",
+              "i18n": {
+                "zh-Hant": {
+                  "label": "平均溫度"
+                }
+              }
+            },
+            {
+              "label": "Excess heat",
+              "key": "energy",
+              "format": "number:1",
+              "i18n": {
+                "zh-Hant": {
+                  "label": "超額熱量"
+                }
+              }
+            }
+          ],
+          "i18n": {
+            "zh-Hant": {
+              "title": "已發布的模擬快照",
+              "description": "選定步驟概括峰值溫度與保留熱能，不必載入每一個模擬網格。"
+            }
+          }
+        },
+        {
+          "type": "callout",
+          "tone": "info",
+          "title": "Boundary conditions shape the energy curve",
+          "content": "Energy may be conserved or leave the domain depending on the configured boundaries. Interpret decay only after identifying that assumption.",
+          "i18n": {
+            "zh-Hant": {
+              "title": "邊界條件會塑造熱能曲線",
+              "content": "熱能可能守恆，也可能依邊界設定離開計算域；辨識該假設後，才能正確解讀衰減。"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "stability",
+      "title": "Test Numerical Stability",
+      "shortTitle": "Stability",
+      "summary": "Compare explicit updates and identify when a time step violates the stability requirement.",
+      "i18n": {
+        "zh-Hant": {
+          "title": "測試數值穩定性",
+          "shortTitle": "穩定性",
+          "summary": "比較顯式更新，並辨識時間步長何時違反穩定條件。"
+        }
+      },
+      "blocks": [
+        {
+          "type": "plot",
+          "artifact": "plot-stability-comparison"
+        },
+        {
+          "type": "table",
+          "title": "Stability tests",
+          "description": "Each test changes the explicit update ratio while keeping the physical setup comparable.",
+          "source": "results",
+          "path": "stabilityTests",
+          "columns": [
+            {
+              "label": "Stability ratio",
+              "key": "ratio",
+              "format": "number:2",
+              "i18n": {
+                "zh-Hant": {
+                  "label": "穩定性比率"
+                }
+              }
+            },
+            {
+              "label": "Status",
+              "key": "status",
+              "valueLabels": {
+                "Stable": "Stable",
+                "Unstable": "Unstable"
+              },
+              "i18n": {
+                "zh-Hant": {
+                  "label": "狀態",
+                  "valueLabels": {
+                    "Stable": "穩定",
+                    "Unstable": "不穩定"
+                  }
+                }
+              }
+            },
+            {
+              "label": "Maximum magnitude",
+              "key": "maxTemperature",
+              "format": "number:2",
+              "i18n": {
+                "zh-Hant": {
+                  "label": "最大溫度幅值"
+                }
+              }
+            }
+          ],
+          "i18n": {
+            "zh-Hant": {
+              "title": "穩定性測試",
+              "description": "每項測試會改變顯式更新比率，同時維持可比較的物理設定。"
+            }
+          }
+        },
+        {
+          "type": "callout",
+          "tone": "warning",
+          "title": "An unstable run is not a faster approximation",
+          "content": "Once the stability limit is exceeded, oscillation and growth are numerical artifacts rather than accelerated physical diffusion.",
+          "i18n": {
+            "zh-Hant": {
+              "title": "不穩定模擬不是更快的近似",
+              "content": "超過穩定極限後，振盪與增長屬於數值假象，而不是加速的物理擴散。"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "source-code",
+      "title": "Trace the Source Code",
+      "shortTitle": "Source Code",
+      "summary": "Connect the experiment definition, numerical solver, diagnostics, and plot export pipeline.",
+      "i18n": {
+        "zh-Hant": {
+          "title": "追蹤原始程式碼",
+          "shortTitle": "原始碼",
+          "summary": "串連實驗定義、數值求解器、診斷計算與圖表匯出流程。"
+        }
+      },
+      "blocks": [
+        {
+          "type": "text",
+          "eyebrow": "IMPLEMENTATION MAP",
+          "title": "Keep numerical updates isolated and testable",
+          "paragraphs": [
+            "The main function defines the grid and publication workflow, while the solver advances temperature and returns diagnostics.",
+            "The plotting helper turns those returned values into documented repository views without modifying the numerical result."
+          ],
+          "i18n": {
+            "zh-Hant": {
+              "eyebrow": "實作地圖",
+              "title": "讓數值更新保持獨立且可測試",
+              "paragraphs": [
+                "主函式定義網格與發布流程，求解器則推進溫度並回傳診斷結果。",
+                "繪圖輔助函式將回傳值轉為案例庫文件視圖，而不修改數值結果。"
+              ]
+            }
+          }
+        },
+        {
+          "type": "code",
+          "artifact": "code-main",
+          "title": "Publishing entry point",
+          "i18n": {
+            "zh-Hant": {
+              "title": "發布入口程式"
+            }
+          }
+        },
+        {
+          "type": "split",
+          "ratio": "1:1",
+          "blocks": [
+            {
+              "type": "code",
+              "artifact": "code-simulate-heat",
+              "title": "Heat-diffusion solver",
+              "i18n": {
+                "zh-Hant": {
+                  "title": "熱擴散求解器"
+                }
+              }
+            },
+            {
+              "type": "code",
+              "artifact": "code-generate-plots",
+              "title": "Plot export helper",
+              "i18n": {
+                "zh-Hant": {
+                  "title": "圖表匯出輔助函式"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

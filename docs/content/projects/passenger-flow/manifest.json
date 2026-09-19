@@ -1,0 +1,552 @@
+{
+  "schemaVersion": "2.1",
+  "id": "passenger-flow",
+  "title": "Passenger Flow Forecasting",
+  "eyebrow": "MATLAB CODE CASE",
+  "description": "Follow the code, generated plots, and model results as one connected analysis workflow.",
+  "version": "20260919-170624",
+  "lastUpdated": "2026-09-19 17:06:24",
+  "i18n": {
+    "zh-Hant": {
+      "title": "客流量預測",
+      "eyebrow": "MATLAB 程式碼案例",
+      "description": "依序理解程式碼、生成圖表與模型結果如何串成完整分析流程。"
+    }
+  },
+  "artifacts": [
+    {
+      "id": "results",
+      "kind": "json",
+      "file": "data/results.json"
+    },
+    {
+      "id": "documentation-overview",
+      "kind": "markdown",
+      "file": "docs/overview.md",
+      "fileByLocale": {
+        "zh-Hant": "docs/overview.zh-Hant.md"
+      },
+      "label": "Case README",
+      "i18n": {
+        "zh-Hant": {
+          "label": "案例說明文件"
+        }
+      }
+    },
+    {
+      "id": "code-main",
+      "kind": "matlab-code",
+      "file": "code/main.m",
+      "label": "main.m"
+    },
+    {
+      "id": "code-generate-data",
+      "kind": "matlab-code",
+      "file": "code/generate_data.m",
+      "label": "generate_data.m"
+    },
+    {
+      "id": "code-generate-plots",
+      "kind": "matlab-code",
+      "file": "code/generate_plots.m",
+      "label": "generate_plots.m"
+    },
+    {
+      "id": "plot-passenger-flow",
+      "kind": "plot",
+      "file": "plots/passenger_flow.png",
+      "label": "Passenger Flow Over Time",
+      "alt": "Line chart showing simulated passenger flow over 168 time points",
+      "caption": "A deterministic synthetic series combining trend, daily and weekly patterns, and random noise.",
+      "generatedBy": "code-generate-plots",
+      "i18n": {
+        "zh-Hant": {
+          "label": "客流量時間序列",
+          "alt": "顯示 168 個時間點之模擬客流量的折線圖",
+          "caption": "此可重現的合成序列結合趨勢、日週期、週週期與隨機雜訊。"
+        }
+      }
+    },
+    {
+      "id": "plot-forecast",
+      "kind": "plot",
+      "file": "plots/forecast.png",
+      "label": "Passenger Flow Forecast",
+      "alt": "Line chart comparing actual and forecast passenger flow",
+      "caption": "The weighted moving-average baseline follows recent movement while smoothing short-term noise.",
+      "generatedBy": "code-generate-plots",
+      "i18n": {
+        "zh-Hant": {
+          "label": "客流量預測",
+          "alt": "比較實際與預測客流量的折線圖",
+          "caption": "加權移動平均基準會追蹤近期變化，同時平滑短期雜訊。"
+        }
+      }
+    },
+    {
+      "id": "plot-model-comparison",
+      "kind": "plot",
+      "file": "plots/model_comparison.png",
+      "label": "Model Performance Comparison",
+      "alt": "Bar chart comparing RMSE for ARIMA, Random Forest, and LSTM",
+      "caption": "A lower RMSE indicates better predictive performance in this demonstration.",
+      "generatedBy": "code-generate-plots",
+      "i18n": {
+        "zh-Hant": {
+          "label": "模型效能比較",
+          "alt": "比較 ARIMA、Random Forest 與 LSTM 之 RMSE 的長條圖",
+          "caption": "在此示範中，較低的 RMSE 代表較佳的預測效能。"
+        }
+      }
+    },
+    {
+      "id": "plot-error-distribution",
+      "kind": "plot",
+      "file": "plots/error_distribution.png",
+      "label": "Forecast Error Distribution",
+      "alt": "Histogram showing the distribution of actual minus forecast errors",
+      "caption": "Residuals reveal the spread and direction of errors made by the baseline forecast.",
+      "generatedBy": "code-generate-plots",
+      "i18n": {
+        "zh-Hant": {
+          "label": "預測誤差分布",
+          "alt": "顯示實際值減預測值之誤差分布的直方圖",
+          "caption": "殘差可呈現基準預測的誤差方向與分散程度。"
+        }
+      }
+    }
+  ],
+  "sections": [
+    {
+      "id": "overview",
+      "title": "Code Case Overview",
+      "shortTitle": "Overview",
+      "summary": "Understand the analysis pipeline and inspect the latest model results.",
+      "i18n": {
+        "zh-Hant": {
+          "title": "程式碼案例概覽",
+          "shortTitle": "概覽",
+          "summary": "理解分析流程並檢視最新模型結果。"
+        }
+      },
+      "blocks": [
+        {
+          "type": "text",
+          "eyebrow": "CASE PURPOSE",
+          "title": "From MATLAB output to a documented code case",
+          "paragraphs": [
+            "This code case generates a repeatable passenger-flow dataset, builds a transparent forecast, and publishes every result as static repository content.",
+            "Each case section is declared in this case manifest. The HTML remains unchanged when sections, code files, or plots are reorganized."
+          ],
+          "i18n": {
+            "zh-Hant": {
+              "eyebrow": "案例目的",
+              "title": "將 MATLAB 輸出整理成有文件記錄的程式碼案例",
+              "paragraphs": [
+                "此程式碼案例會生成可重現的客流量資料、建立透明易懂的預測，並將所有結果發布為靜態案例庫內容。",
+                "每個案例章節都由案例內容清單宣告；重新安排章節、程式碼或圖表時，不必修改 HTML。"
+              ]
+            }
+          }
+        },
+        {
+          "type": "markdown",
+          "artifact": "documentation-overview",
+          "title": "Case documentation",
+          "i18n": {
+            "zh-Hant": {
+              "title": "案例說明文件"
+            }
+          }
+        },
+        {
+          "type": "metrics",
+          "source": "results",
+          "items": [
+            {
+              "label": "MAE",
+              "path": "metrics.MAE",
+              "format": "number:2",
+              "detail": "Mean absolute error",
+              "tone": "blue",
+              "i18n": {
+                "zh-Hant": {
+                  "label": "平均絕對誤差",
+                  "detail": "預測誤差的絕對值平均"
+                }
+              }
+            },
+            {
+              "label": "RMSE",
+              "path": "metrics.RMSE",
+              "format": "number:2",
+              "detail": "Root mean squared error",
+              "tone": "cyan",
+              "i18n": {
+                "zh-Hant": {
+                  "label": "均方根誤差",
+                  "detail": "放大較大誤差影響的指標"
+                }
+              }
+            },
+            {
+              "label": "R²",
+              "path": "metrics.R2",
+              "format": "number:3",
+              "detail": "Explained variance",
+              "tone": "violet",
+              "i18n": {
+                "zh-Hant": {
+                  "label": "決定係數 R²",
+                  "detail": "模型解釋的變異比例"
+                }
+              }
+            },
+            {
+              "label": "Best model",
+              "derive": {
+                "type": "min",
+                "path": "models",
+                "valueKey": "rmse",
+                "labelKey": "name"
+              },
+              "format": "number:2",
+              "detailTemplate": "RMSE {value}",
+              "tone": "green",
+              "i18n": {
+                "zh-Hant": {
+                  "label": "最佳模型",
+                  "detailTemplate": "RMSE {value}"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "type": "table",
+          "title": "Model benchmark",
+          "description": "The best result is selected from the published JSON, not hard-coded in the page.",
+          "source": "results",
+          "path": "models",
+          "highlightMin": "rmse",
+          "columns": [
+            {
+              "label": "Model",
+              "key": "name",
+              "i18n": {
+                "zh-Hant": {
+                  "label": "模型"
+                }
+              }
+            },
+            {
+              "label": "RMSE",
+              "key": "rmse",
+              "format": "number:2"
+            }
+          ],
+          "i18n": {
+            "zh-Hant": {
+              "title": "模型基準比較",
+              "description": "最佳結果由已發布的 JSON 自動選出，不會寫死在頁面中。"
+            }
+          }
+        },
+        {
+          "type": "callout",
+          "tone": "info",
+          "title": "Published content only",
+          "content": "Refresh Content reloads files already generated by MATLAB. It does not execute MATLAB in the browser.",
+          "i18n": {
+            "zh-Hant": {
+              "title": "只讀取已發布內容",
+              "content": "「重新整理內容」只會載入 MATLAB 已生成的檔案，不會在瀏覽器中執行 MATLAB。"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "data-generation",
+      "title": "Generate the Data",
+      "shortTitle": "Data Generation",
+      "summary": "Build deterministic passenger-flow data from trend, periodic signals, and noise.",
+      "i18n": {
+        "zh-Hant": {
+          "title": "生成資料",
+          "shortTitle": "資料生成",
+          "summary": "由趨勢、週期訊號與雜訊建立可重現的客流量資料。"
+        }
+      },
+      "blocks": [
+        {
+          "type": "text",
+          "eyebrow": "FUNCTION REFERENCE",
+          "title": "A reproducible synthetic time series",
+          "paragraphs": [
+            "The generator fixes the random seed and combines interpretable components. This keeps every run comparable while preserving realistic variation."
+          ],
+          "i18n": {
+            "zh-Hant": {
+              "eyebrow": "函數說明",
+              "title": "可重現的合成時間序列",
+              "paragraphs": [
+                "資料生成器會固定隨機種子並組合可解釋的成分，使每次執行皆可比較，同時保留合理的變化。"
+              ]
+            }
+          }
+        },
+        {
+          "type": "split",
+          "ratio": "1:1",
+          "blocks": [
+            {
+              "type": "code",
+              "artifact": "code-generate-data",
+              "title": "Data and forecast function",
+              "i18n": {
+                "zh-Hant": {
+                  "title": "資料與預測函數"
+                }
+              }
+            },
+            {
+              "type": "plot",
+              "artifact": "plot-passenger-flow"
+            }
+          ]
+        },
+        {
+          "type": "steps",
+          "title": "How the signal is constructed",
+          "i18n": {
+            "zh-Hant": {
+              "title": "訊號的建構方式"
+            }
+          },
+          "items": [
+            {
+              "title": "Set the seed",
+              "content": "rng(42) makes the random component repeatable.",
+              "i18n": {
+                "zh-Hant": {
+                  "title": "固定隨機種子",
+                  "content": "rng(42) 讓隨機成分可以重現。"
+                }
+              }
+            },
+            {
+              "title": "Combine components",
+              "content": "Trend, daily periodicity, weekly periodicity, and noise form the observed flow.",
+              "i18n": {
+                "zh-Hant": {
+                  "title": "組合各項成分",
+                  "content": "趨勢、日週期、週週期與雜訊共同形成觀測客流量。"
+                }
+              }
+            },
+            {
+              "title": "Create the baseline",
+              "content": "Only earlier observations are used to calculate each forecast value.",
+              "i18n": {
+                "zh-Hant": {
+                  "title": "建立預測基準",
+                  "content": "每個預測值只使用更早的觀測資料計算。"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "forecast",
+      "title": "Build the Forecast",
+      "shortTitle": "Forecast",
+      "summary": "Compare the observed series with a transparent weighted moving-average baseline.",
+      "i18n": {
+        "zh-Hant": {
+          "title": "建立預測",
+          "shortTitle": "預測",
+          "summary": "比較觀測序列與透明易懂的加權移動平均基準。"
+        }
+      },
+      "blocks": [
+        {
+          "type": "plot",
+          "artifact": "plot-forecast"
+        },
+        {
+          "type": "split",
+          "ratio": "3:2",
+          "blocks": [
+            {
+              "type": "code",
+              "artifact": "code-generate-data",
+              "title": "Forecast logic",
+              "i18n": {
+                "zh-Hant": {
+                  "title": "預測邏輯"
+                }
+              }
+            },
+            {
+              "type": "callout",
+              "tone": "note",
+              "title": "Why keep the model simple?",
+              "content": "This code case documents a publishing workflow. A readable baseline keeps the relationship between inputs, code, and output easy to review.",
+              "i18n": {
+                "zh-Hant": {
+                  "title": "為什麼使用簡單模型？",
+                  "content": "此程式碼案例記錄發布流程；容易閱讀的基準模型可讓輸入、程式碼與輸出之間的關係更容易檢視。"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "model-comparison",
+      "title": "Compare Models",
+      "shortTitle": "Model Comparison",
+      "summary": "Read model scores from JSON and identify the lowest RMSE automatically.",
+      "i18n": {
+        "zh-Hant": {
+          "title": "比較模型",
+          "shortTitle": "模型比較",
+          "summary": "從 JSON 讀取模型分數，並自動找出最低 RMSE。"
+        }
+      },
+      "blocks": [
+        {
+          "type": "split",
+          "ratio": "3:2",
+          "blocks": [
+            {
+              "type": "plot",
+              "artifact": "plot-model-comparison"
+            },
+            {
+              "type": "table",
+              "title": "Published scores",
+              "source": "results",
+              "path": "models",
+              "highlightMin": "rmse",
+              "columns": [
+                {
+                  "label": "Model",
+                  "key": "name",
+                  "i18n": {
+                    "zh-Hant": {
+                      "label": "模型"
+                    }
+                  }
+                },
+                {
+                  "label": "RMSE",
+                  "key": "rmse",
+                  "format": "number:2"
+                }
+              ],
+              "i18n": {
+                "zh-Hant": {
+                  "title": "已發布分數"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "error-analysis",
+      "title": "Inspect Forecast Errors",
+      "shortTitle": "Error Analysis",
+      "summary": "Use the residual distribution to inspect bias and error spread.",
+      "i18n": {
+        "zh-Hant": {
+          "title": "檢查預測誤差",
+          "shortTitle": "誤差分析",
+          "summary": "利用殘差分布檢查偏差與誤差的分散程度。"
+        }
+      },
+      "blocks": [
+        {
+          "type": "split",
+          "ratio": "3:2",
+          "blocks": [
+            {
+              "type": "plot",
+              "artifact": "plot-error-distribution"
+            },
+            {
+              "type": "callout",
+              "tone": "warning",
+              "title": "Reading residuals",
+              "content": "Errors are calculated as Actual − Forecast. A distribution centered near zero suggests limited systematic bias, while its width reflects uncertainty.",
+              "i18n": {
+                "zh-Hant": {
+                  "title": "如何解讀殘差",
+                  "content": "誤差以「實際值 − 預測值」計算。分布若接近零，代表系統性偏差有限；分布寬度則反映不確定性。"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "source-code",
+      "title": "Trace the Source Code",
+      "shortTitle": "Source Code",
+      "summary": "Review the orchestration and plotting functions copied from the latest MATLAB run.",
+      "i18n": {
+        "zh-Hant": {
+          "title": "追蹤原始程式碼",
+          "shortTitle": "原始碼",
+          "summary": "檢視最新 MATLAB 執行後複製的流程控制與繪圖函數。"
+        }
+      },
+      "blocks": [
+        {
+          "type": "text",
+          "eyebrow": "IMPLEMENTATION",
+          "title": "The website displays the generated source files",
+          "paragraphs": [
+            "Each code block loads a file declared in the artifact registry. New functions can be added to the repository documentation without creating new HTML pages."
+          ],
+          "i18n": {
+            "zh-Hant": {
+              "eyebrow": "實作方式",
+              "title": "網站會顯示已生成的原始程式檔",
+              "paragraphs": [
+                "每個程式碼區塊都會載入資源清單中宣告的檔案；新增函數時，可直接擴充案例庫文件，不必建立新的 HTML 頁面。"
+              ]
+            }
+          }
+        },
+        {
+          "type": "code",
+          "artifact": "code-main",
+          "title": "Publishing entry point",
+          "i18n": {
+            "zh-Hant": {
+              "title": "發布流程入口"
+            }
+          }
+        },
+        {
+          "type": "code",
+          "artifact": "code-generate-plots",
+          "title": "Plot export function",
+          "i18n": {
+            "zh-Hant": {
+              "title": "圖表匯出函數"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

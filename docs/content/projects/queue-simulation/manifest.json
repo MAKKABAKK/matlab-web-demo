@@ -1,0 +1,578 @@
+{
+  "schemaVersion": "2.1",
+  "id": "queue-simulation",
+  "title": "Queue Simulation",
+  "eyebrow": "MATLAB CODE CASE",
+  "description": "Simulate a single-server queue, explain event timing, and compare service scenarios with operational metrics.",
+  "version": "20260919-170629",
+  "lastUpdated": "2026-09-19 17:06:29",
+  "i18n": {
+    "zh-Hant": {
+      "title": "排隊系統模擬",
+      "eyebrow": "MATLAB 程式碼案例",
+      "description": "模擬單一服務台排隊系統、解釋事件時間，並以營運指標比較不同服務情境。"
+    }
+  },
+  "artifacts": [
+    {
+      "id": "results",
+      "kind": "json",
+      "file": "data/results.json"
+    },
+    {
+      "id": "code-main",
+      "kind": "matlab-code",
+      "file": "code/queue_simulation_main.m",
+      "label": "queue_simulation_main.m"
+    },
+    {
+      "id": "code-simulate-queue",
+      "kind": "matlab-code",
+      "file": "code/simulate_queue_demo.m",
+      "label": "simulate_queue_demo.m"
+    },
+    {
+      "id": "code-generate-plots",
+      "kind": "matlab-code",
+      "file": "code/create_queue_figures.m",
+      "label": "create_queue_figures.m"
+    },
+    {
+      "id": "plot-queue-timeline",
+      "kind": "plot",
+      "file": "plots/queue_timeline.png",
+      "label": "Queue Event Timeline",
+      "alt": "Timeline showing customer arrivals, service starts, and service completions in a single-server queue",
+      "caption": "The event timeline exposes when customers wait, when the server is busy, and when idle capacity appears.",
+      "generatedBy": "code-generate-plots",
+      "i18n": {
+        "zh-Hant": {
+          "label": "排隊事件時間軸",
+          "alt": "顯示單一服務台中顧客抵達、開始服務與完成服務時間的時間軸",
+          "caption": "事件時間軸呈現顧客何時等候、服務台何時忙碌，以及何時出現閒置產能。"
+        }
+      }
+    },
+    {
+      "id": "plot-waiting-distribution",
+      "kind": "plot",
+      "file": "plots/waiting_distribution.png",
+      "label": "Waiting-time Distribution",
+      "alt": "Histogram showing the distribution of simulated customer waiting times",
+      "caption": "The tail of the distribution reveals customer experiences that an average waiting time can hide.",
+      "generatedBy": "code-generate-plots",
+      "i18n": {
+        "zh-Hant": {
+          "label": "等候時間分布",
+          "alt": "顯示模擬顧客等候時間分布的直方圖",
+          "caption": "分布尾端可揭示平均等候時間可能掩蓋的顧客體驗。"
+        }
+      }
+    },
+    {
+      "id": "plot-scenario-comparison",
+      "kind": "plot",
+      "file": "plots/scenario_comparison.png",
+      "label": "Queue Scenario Comparison",
+      "alt": "Chart comparing waiting time and utilization across queue service scenarios",
+      "caption": "Scenario comparison makes the trade-off between shorter waits and higher resource utilization visible.",
+      "generatedBy": "code-generate-plots",
+      "i18n": {
+        "zh-Hant": {
+          "label": "排隊情境比較",
+          "alt": "比較不同排隊服務情境之等候時間與使用率的圖表",
+          "caption": "情境比較可呈現縮短等候時間與提高資源使用率之間的取捨。"
+        }
+      }
+    },
+    {
+      "id": "plot-running-average",
+      "kind": "plot",
+      "file": "plots/running_average.png",
+      "label": "Running Average of Waiting Time",
+      "alt": "Line chart showing how the cumulative average waiting time changes as more customers are simulated",
+      "caption": "A settling running average provides evidence that the simulation horizon is long enough for a stable estimate.",
+      "generatedBy": "code-generate-plots",
+      "i18n": {
+        "zh-Hant": {
+          "label": "等候時間移動累計平均",
+          "alt": "顯示隨模擬顧客數增加，累計平均等候時間如何變化的折線圖",
+          "caption": "逐漸穩定的累計平均可支持模擬期間足以產生穩定估計的判斷。"
+        }
+      }
+    }
+  ],
+  "sections": [
+    {
+      "id": "overview",
+      "title": "Code Case Overview",
+      "shortTitle": "Overview",
+      "summary": "Connect customer experience, queue congestion, and server utilization in one simulation.",
+      "i18n": {
+        "zh-Hant": {
+          "title": "程式碼案例概覽",
+          "shortTitle": "概覽",
+          "summary": "在同一模擬中串連顧客體驗、排隊壅塞與服務台使用率。"
+        }
+      },
+      "blocks": [
+        {
+          "type": "text",
+          "eyebrow": "CASE PURPOSE",
+          "title": "Translate random events into operational decisions",
+          "paragraphs": [
+            "This code case models customers arriving randomly at a single server and records when each customer begins and completes service.",
+            "The published indicators describe both typical performance and difficult tail cases, helping connect simulation mechanics with capacity decisions."
+          ],
+          "i18n": {
+            "zh-Hant": {
+              "eyebrow": "案例目的",
+              "title": "將隨機事件轉化為營運決策",
+              "paragraphs": [
+                "此程式碼案例模擬顧客隨機抵達單一服務台，並記錄每位顧客開始與完成服務的時間。",
+                "發布的指標同時描述典型表現與較極端的尾端情況，協助把模擬機制連結到產能決策。"
+              ]
+            }
+          }
+        },
+        {
+          "type": "metrics",
+          "source": "results",
+          "items": [
+            {
+              "label": "Mean wait",
+              "path": "metrics.meanWait",
+              "format": "number:2",
+              "detail": "Average time spent waiting before service",
+              "tone": "blue",
+              "i18n": {
+                "zh-Hant": {
+                  "label": "平均等候時間",
+                  "detail": "開始服務前的平均等候時間"
+                }
+              }
+            },
+            {
+              "label": "95th-percentile wait",
+              "path": "metrics.p95Wait",
+              "format": "number:2",
+              "detail": "A tail measure of the customer waiting experience",
+              "tone": "cyan",
+              "i18n": {
+                "zh-Hant": {
+                  "label": "第 95 百分位等候時間",
+                  "detail": "反映顧客等候體驗尾端的指標"
+                }
+              }
+            },
+            {
+              "label": "Utilization",
+              "path": "metrics.utilization",
+              "format": "number:2",
+              "detail": "Share of simulated time when the server is busy",
+              "tone": "violet",
+              "i18n": {
+                "zh-Hant": {
+                  "label": "服務台使用率",
+                  "detail": "模擬期間服務台處於忙碌狀態的比例"
+                }
+              }
+            },
+            {
+              "label": "Probability of waiting",
+              "path": "metrics.probabilityOfWait",
+              "format": "number:2",
+              "detail": "Share of customers who do not receive immediate service",
+              "tone": "green",
+              "i18n": {
+                "zh-Hant": {
+                  "label": "需要等候的機率",
+                  "detail": "未能立即接受服務的顧客比例"
+                }
+              }
+            },
+            {
+              "label": "Maximum queue",
+              "path": "metrics.maxQueue",
+              "format": "number:0",
+              "detail": "Largest observed number of waiting customers",
+              "tone": "blue",
+              "i18n": {
+                "zh-Hant": {
+                  "label": "最大排隊人數",
+                  "detail": "觀察到的最大等候顧客數"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "type": "callout",
+          "tone": "info",
+          "title": "Average performance is only one view",
+          "content": "A system with an acceptable mean wait can still produce long delays for a smaller group of customers. Read the mean and the 95th percentile together.",
+          "i18n": {
+            "zh-Hant": {
+              "title": "平均表現只是其中一個視角",
+              "content": "平均等候時間可接受的系統，仍可能讓少數顧客經歷很長延誤；應同時解讀平均值與第 95 百分位。"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "event-mechanics",
+      "title": "Simulate Queue Events",
+      "shortTitle": "Event Mechanics",
+      "summary": "Follow arrival, service-start, and departure times through the single-server recurrence.",
+      "i18n": {
+        "zh-Hant": {
+          "title": "模擬排隊事件",
+          "shortTitle": "事件機制",
+          "summary": "沿著單一服務台的遞迴關係，追蹤抵達、開始服務與離開時間。"
+        }
+      },
+      "blocks": [
+        {
+          "type": "split",
+          "ratio": "1:1",
+          "blocks": [
+            {
+              "type": "code",
+              "artifact": "code-simulate-queue",
+              "title": "Discrete-event queue logic",
+              "i18n": {
+                "zh-Hant": {
+                  "title": "離散事件排隊邏輯"
+                }
+              }
+            },
+            {
+              "type": "plot",
+              "artifact": "plot-queue-timeline"
+            }
+          ]
+        },
+        {
+          "type": "steps",
+          "title": "Process each customer",
+          "items": [
+            {
+              "title": "Generate an arrival",
+              "content": "Add a sampled interarrival time to determine when the next customer enters the system.",
+              "i18n": {
+                "zh-Hant": {
+                  "title": "生成抵達事件",
+                  "content": "累加抽樣得到的抵達間隔，決定下一位顧客進入系統的時間。"
+                }
+              }
+            },
+            {
+              "title": "Start service when possible",
+              "content": "Service begins at the later of the customer arrival and the previous service completion.",
+              "i18n": {
+                "zh-Hant": {
+                  "title": "在可用時開始服務",
+                  "content": "開始服務時間取顧客抵達與上一位完成服務兩者中的較晚時間。"
+                }
+              }
+            },
+            {
+              "title": "Record the departure",
+              "content": "Add the sampled service time and retain waiting, queue, and busy-time statistics.",
+              "i18n": {
+                "zh-Hant": {
+                  "title": "記錄離開事件",
+                  "content": "加上抽樣的服務時間，並保存等候、隊列與忙碌時間統計。"
+                }
+              }
+            }
+          ],
+          "i18n": {
+            "zh-Hant": {
+              "title": "逐一處理每位顧客"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "waiting-times",
+      "title": "Inspect Waiting Times",
+      "shortTitle": "Waiting Times",
+      "summary": "Move beyond the mean and examine the shape and tail of customer delays.",
+      "i18n": {
+        "zh-Hant": {
+          "title": "檢視等候時間",
+          "shortTitle": "等候時間",
+          "summary": "超越平均值，檢視顧客延誤的分布形狀與尾端。"
+        }
+      },
+      "blocks": [
+        {
+          "type": "plot",
+          "artifact": "plot-waiting-distribution"
+        },
+        {
+          "type": "split",
+          "ratio": "3:2",
+          "blocks": [
+            {
+              "type": "text",
+              "eyebrow": "INTERPRETATION",
+              "title": "Why the distribution is usually skewed",
+              "paragraphs": [
+                "Many customers may receive immediate or short service, while a burst of arrivals creates a much smaller group with long waits.",
+                "This asymmetry is why percentiles and the full distribution are useful companions to the mean."
+              ],
+              "i18n": {
+                "zh-Hant": {
+                  "eyebrow": "結果解讀",
+                  "title": "為何分布通常呈現偏斜",
+                  "paragraphs": [
+                    "許多顧客可能立即或很快接受服務，但一波密集抵達會使少數顧客經歷長時間等候。",
+                    "這種不對稱正是百分位數與完整分布應搭配平均值解讀的原因。"
+                  ]
+                }
+              }
+            },
+            {
+              "type": "callout",
+              "tone": "warning",
+              "title": "Check units before comparison",
+              "content": "Arrival rates, service rates, waiting times, and plot axes must use a consistent time unit.",
+              "i18n": {
+                "zh-Hant": {
+                  "title": "比較前先確認單位",
+                  "content": "抵達率、服務率、等候時間與圖表座標軸必須使用一致的時間單位。"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "scenario-comparison",
+      "title": "Compare Service Scenarios",
+      "shortTitle": "Scenarios",
+      "summary": "Change demand and service capacity, then compare customer delay with resource utilization.",
+      "i18n": {
+        "zh-Hant": {
+          "title": "比較服務情境",
+          "shortTitle": "情境比較",
+          "summary": "改變需求與服務能力，再比較顧客延誤與資源使用率。"
+        }
+      },
+      "blocks": [
+        {
+          "type": "plot",
+          "artifact": "plot-scenario-comparison"
+        },
+        {
+          "type": "table",
+          "title": "Scenario benchmark",
+          "description": "Each row is a complete simulation under a different arrival or service assumption.",
+          "source": "results",
+          "path": "scenarios",
+          "columns": [
+            {
+              "label": "Scenario",
+              "key": "name",
+              "valueLabels": {
+                "low": "Low load",
+                "balanced": "Balanced load",
+                "high": "High load"
+              },
+              "i18n": {
+                "zh-Hant": {
+                  "label": "情境",
+                  "valueLabels": {
+                    "low": "低負載",
+                    "balanced": "平衡負載",
+                    "high": "高負載"
+                  }
+                }
+              }
+            },
+            {
+              "label": "Arrival rate",
+              "key": "arrivalRate",
+              "format": "number:2",
+              "i18n": {
+                "zh-Hant": {
+                  "label": "抵達率"
+                }
+              }
+            },
+            {
+              "label": "Load factor",
+              "key": "loadFactor",
+              "format": "number:2",
+              "i18n": {
+                "zh-Hant": {
+                  "label": "負載率"
+                }
+              }
+            },
+            {
+              "label": "Mean wait",
+              "key": "meanWait",
+              "format": "number:2",
+              "i18n": {
+                "zh-Hant": {
+                  "label": "平均等候時間"
+                }
+              }
+            },
+            {
+              "label": "Utilization",
+              "key": "utilization",
+              "format": "number:2",
+              "i18n": {
+                "zh-Hant": {
+                  "label": "使用率"
+                }
+              }
+            }
+          ],
+          "i18n": {
+            "zh-Hant": {
+              "title": "情境效能比較",
+              "description": "每一列代表在不同抵達或服務假設下完成的一次模擬。"
+            }
+          }
+        },
+        {
+          "type": "callout",
+          "tone": "note",
+          "title": "Capacity has a nonlinear effect",
+          "content": "When demand approaches service capacity, a small rate change can create a disproportionately large change in waiting time.",
+          "i18n": {
+            "zh-Hant": {
+              "title": "產能影響具有非線性",
+              "content": "當需求接近服務能力時，速率的微小變化可能造成不成比例的大幅等候時間變化。"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "convergence",
+      "title": "Check Simulation Convergence",
+      "shortTitle": "Convergence",
+      "summary": "Use the running average to judge whether the simulated sample is long enough for interpretation.",
+      "i18n": {
+        "zh-Hant": {
+          "title": "檢查模擬收斂",
+          "shortTitle": "收斂檢查",
+          "summary": "利用累計平均判斷模擬樣本是否足夠長，能支持結果解讀。"
+        }
+      },
+      "blocks": [
+        {
+          "type": "split",
+          "ratio": "3:2",
+          "blocks": [
+            {
+              "type": "plot",
+              "artifact": "plot-running-average"
+            },
+            {
+              "type": "callout",
+              "tone": "info",
+              "title": "Look for stability, not a perfectly flat line",
+              "content": "Random simulation output continues to fluctuate. The useful question is whether later observations change the cumulative estimate materially.",
+              "i18n": {
+                "zh-Hant": {
+                  "title": "尋找穩定趨勢，而非完全水平的線",
+                  "content": "隨機模擬輸出仍會持續波動；真正要判斷的是後續觀測是否仍會明顯改變累計估計。"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "artifact": "code-generate-plots",
+          "title": "Visualize events, distributions, and convergence",
+          "i18n": {
+            "zh-Hant": {
+              "title": "視覺化事件、分布與收斂情形"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "source-code",
+      "title": "Trace the Source Code",
+      "shortTitle": "Source Code",
+      "summary": "Connect orchestration, queue mechanics, published metrics, and visualization helpers.",
+      "i18n": {
+        "zh-Hant": {
+          "title": "追蹤原始程式碼",
+          "shortTitle": "原始碼",
+          "summary": "串連流程協調、排隊機制、發布指標與視覺化輔助函式。"
+        }
+      },
+      "blocks": [
+        {
+          "type": "text",
+          "eyebrow": "IMPLEMENTATION MAP",
+          "title": "Separate the simulation engine from presentation",
+          "paragraphs": [
+            "The main function defines scenarios and publishes outputs, while the simulator focuses only on event timing and queue statistics.",
+            "The plotting helper consumes returned results without changing the simulated data, keeping analysis and presentation responsibilities distinct."
+          ],
+          "i18n": {
+            "zh-Hant": {
+              "eyebrow": "實作地圖",
+              "title": "分離模擬引擎與呈現層",
+              "paragraphs": [
+                "主函式定義情境並發布輸出，模擬器則只專注於事件時間與排隊統計。",
+                "繪圖輔助函式讀取回傳結果而不修改模擬資料，使分析與呈現職責保持分離。"
+              ]
+            }
+          }
+        },
+        {
+          "type": "code",
+          "artifact": "code-main",
+          "title": "Publishing entry point",
+          "i18n": {
+            "zh-Hant": {
+              "title": "發布入口程式"
+            }
+          }
+        },
+        {
+          "type": "split",
+          "ratio": "1:1",
+          "blocks": [
+            {
+              "type": "code",
+              "artifact": "code-simulate-queue",
+              "title": "Queue simulation engine",
+              "i18n": {
+                "zh-Hant": {
+                  "title": "排隊模擬引擎"
+                }
+              }
+            },
+            {
+              "type": "code",
+              "artifact": "code-generate-plots",
+              "title": "Plot export helper",
+              "i18n": {
+                "zh-Hant": {
+                  "title": "圖表匯出輔助函式"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

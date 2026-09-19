@@ -1,0 +1,131 @@
+{
+  "schemaVersion": "2.2",
+  "siteTitle": "MATLAB Machine Learning Code Repository",
+  "localization": {
+    "defaultLocale": "en",
+    "supportedLocales": [
+      "en",
+      "zh-Hant"
+    ]
+  },
+  "i18n": {
+    "zh-Hant": {
+      "siteTitle": "MATLAB 機器學習程式碼案例庫"
+    }
+  },
+  "defaultProject": "passenger-flow",
+  "categories": [
+    {
+      "id": "time-series-forecasting",
+      "title": "Time-series Forecasting",
+      "description": "Code cases for sequential data generation, forecasting, model comparison, and error analysis.",
+      "i18n": {
+        "zh-Hant": {
+          "title": "時間序列預測",
+          "description": "涵蓋序列資料生成、預測、模型比較與誤差分析的程式碼案例。"
+        }
+      },
+      "projects": [
+        {
+          "id": "passenger-flow",
+          "title": "Passenger Flow Forecasting",
+          "description": "A MATLAB code case covering synthetic time-series generation, baseline forecasting, model comparison, and residual analysis.",
+          "topic": "Time-series Forecasting · 6 sections",
+          "manifest": "projects/passenger-flow/manifest.json",
+          "lastUpdated": "2026-09-19 17:06:24",
+          "i18n": {
+            "zh-Hant": {
+              "title": "客流量預測",
+              "description": "涵蓋合成時間序列生成、基準預測、模型比較與殘差分析的 MATLAB 程式碼案例。",
+              "topic": "時間序列預測 · 6 節"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "signal-models",
+      "title": "Signal Models",
+      "description": "Code cases for signal construction, filtering, spectral analysis, and quantitative model evaluation.",
+      "i18n": {
+        "zh-Hant": {
+          "title": "訊號模型",
+          "description": "涵蓋訊號建構、濾波、頻譜分析與量化模型評估的程式碼案例。"
+        }
+      },
+      "projects": [
+        {
+          "id": "signal-denoising",
+          "title": "Signal Denoising",
+          "description": "A MATLAB code case for constructing a noisy signal, comparing filters, and measuring denoising quality.",
+          "topic": "Signal Models · 6 sections",
+          "manifest": "projects/signal-denoising/manifest.json",
+          "lastUpdated": "2026-09-19 17:06:28",
+          "i18n": {
+            "zh-Hant": {
+              "title": "訊號去雜訊",
+              "description": "涵蓋含雜訊訊號建構、濾波器比較與去雜訊品質量化的 MATLAB 程式碼案例。",
+              "topic": "訊號模型 · 6 節"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "simulation-models",
+      "title": "Simulation Models",
+      "description": "Code cases for stochastic systems, discrete-event simulation, scenario comparison, and operational metrics.",
+      "i18n": {
+        "zh-Hant": {
+          "title": "模擬模型",
+          "description": "涵蓋隨機系統、離散事件模擬、情境比較與營運指標的程式碼案例。"
+        }
+      },
+      "projects": [
+        {
+          "id": "queue-simulation",
+          "title": "Queue Simulation",
+          "description": "A MATLAB code case covering discrete-event queue simulation, waiting-time analysis, and service scenario comparison.",
+          "topic": "Simulation Models · 6 sections",
+          "manifest": "projects/queue-simulation/manifest.json",
+          "lastUpdated": "2026-09-19 17:06:29",
+          "i18n": {
+            "zh-Hant": {
+              "title": "排隊系統模擬",
+              "description": "涵蓋離散事件排隊模擬、等候時間分析與服務情境比較的 MATLAB 程式碼案例。",
+              "topic": "模擬模型 · 6 節"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "numerical-models",
+      "title": "Numerical Models",
+      "description": "Code cases for discretization, numerical solvers, stability analysis, and simulation diagnostics.",
+      "i18n": {
+        "zh-Hant": {
+          "title": "數值模型",
+          "description": "涵蓋離散化、數值求解器、穩定性分析與模擬診斷的程式碼案例。"
+        }
+      },
+      "projects": [
+        {
+          "id": "heat-diffusion",
+          "title": "Heat Diffusion",
+          "description": "A MATLAB code case covering finite-difference heat diffusion, energy change, and numerical stability.",
+          "topic": "Numerical Models · 6 sections",
+          "manifest": "projects/heat-diffusion/manifest.json",
+          "lastUpdated": "2026-09-19 17:06:32",
+          "i18n": {
+            "zh-Hant": {
+              "title": "熱擴散模擬",
+              "description": "涵蓋有限差分熱擴散、能量變化與數值穩定性的 MATLAB 程式碼案例。",
+              "topic": "數值模型 · 6 節"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

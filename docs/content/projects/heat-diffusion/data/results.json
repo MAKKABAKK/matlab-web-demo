@@ -1,0 +1,59 @@
+{
+  "metrics": {
+    "initialPeak": 97.685,
+    "finalPeak": 34.011,
+    "halfCoolingStep": 62,
+    "energyRetainedPercent": 88.954,
+    "stabilityRatio": 0.2
+  },
+  "snapshots": [
+    {
+      "step": 0,
+      "peak": 97.685,
+      "mean": 24.217,
+      "energy": 15692.21
+    },
+    {
+      "step": 25,
+      "peak": 75.326,
+      "mean": 24.217,
+      "energy": 15690.276
+    },
+    {
+      "step": 100,
+      "peak": 49.81,
+      "mean": 24.184,
+      "energy": 15566.916
+    },
+    {
+      "step": 300,
+      "peak": 34.011,
+      "mean": 23.751,
+      "energy": 13958.872
+    }
+  ],
+  "stabilityTests": [
+    {
+      "ratio": 0.1,
+      "status": "Stable",
+      "maxTemperature": 97.685
+    },
+    {
+      "ratio": 0.2,
+      "status": "Stable",
+      "maxTemperature": 97.685
+    },
+    {
+      "ratio": 0.24,
+      "status": "Stable",
+      "maxTemperature": 97.685
+    },
+    {
+      "ratio": 0.28,
+      "status": "Unstable",
+      "maxTemperature": 174.244
+    }
+  ],
+  "project": "Heat Diffusion Lab",
+  "lastUpdated": "2026-09-19 17:06:32"
+}

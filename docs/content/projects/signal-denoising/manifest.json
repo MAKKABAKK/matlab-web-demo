@@ -1,0 +1,547 @@
+{
+  "schemaVersion": "2.1",
+  "id": "signal-denoising",
+  "title": "Signal Denoising",
+  "eyebrow": "MATLAB CODE CASE",
+  "description": "Build a reproducible noisy signal, compare smoothing filters, and connect time-domain and frequency-domain evidence.",
+  "version": "20260919-170628",
+  "lastUpdated": "2026-09-19 17:06:28",
+  "i18n": {
+    "zh-Hant": {
+      "title": "訊號去雜訊",
+      "eyebrow": "MATLAB 程式碼案例",
+      "description": "建立可重現的含雜訊訊號、比較平滑濾波器，並串連時域與頻域證據。"
+    }
+  },
+  "artifacts": [
+    {
+      "id": "results",
+      "kind": "json",
+      "file": "data/results.json"
+    },
+    {
+      "id": "code-main",
+      "kind": "matlab-code",
+      "file": "code/signal_denoising_main.m",
+      "label": "signal_denoising_main.m"
+    },
+    {
+      "id": "code-generate-data",
+      "kind": "matlab-code",
+      "file": "code/signal_denoising_generate_signal.m",
+      "label": "signal_denoising_generate_signal.m"
+    },
+    {
+      "id": "code-evaluate-filters",
+      "kind": "matlab-code",
+      "file": "code/signal_denoising_evaluate_windows.m",
+      "label": "signal_denoising_evaluate_windows.m"
+    },
+    {
+      "id": "code-generate-plots",
+      "kind": "matlab-code",
+      "file": "code/signal_denoising_create_figures.m",
+      "label": "signal_denoising_create_figures.m"
+    },
+    {
+      "id": "plot-signal-components",
+      "kind": "plot",
+      "file": "plots/signal_components.png",
+      "label": "Signal Components",
+      "alt": "Stacked time-series plots showing the clean signal, added noise, and resulting noisy observation",
+      "caption": "Separating the clean waveform and noise makes the denoising objective explicit before any filter is applied.",
+      "generatedBy": "code-generate-plots",
+      "i18n": {
+        "zh-Hant": {
+          "label": "訊號組成",
+          "alt": "依序顯示乾淨訊號、加入的雜訊與最終含雜訊觀測值的時序圖",
+          "caption": "先拆解乾淨波形與雜訊，可在套用濾波器之前清楚界定去雜訊目標。"
+        }
+      }
+    },
+    {
+      "id": "plot-denoising-comparison",
+      "kind": "plot",
+      "file": "plots/denoising_comparison.png",
+      "label": "Denoising Comparison",
+      "alt": "Time-series chart comparing the noisy signal, filtered signal, and clean reference signal",
+      "caption": "The filtered trace should suppress rapid noise while preserving the shape and timing of the clean waveform.",
+      "generatedBy": "code-generate-plots",
+      "i18n": {
+        "zh-Hant": {
+          "label": "去雜訊結果比較",
+          "alt": "比較含雜訊訊號、濾波後訊號與乾淨參考訊號的時序圖",
+          "caption": "濾波後曲線應抑制快速雜訊，同時保留乾淨波形的形狀與時間位置。"
+        }
+      }
+    },
+    {
+      "id": "plot-frequency-spectrum",
+      "kind": "plot",
+      "file": "plots/frequency_spectrum.png",
+      "label": "Frequency Spectrum",
+      "alt": "Frequency-domain spectrum comparing clean, noisy, and filtered signals",
+      "caption": "The spectrum reveals whether filtering reduces high-frequency noise without removing the dominant signal frequencies.",
+      "generatedBy": "code-generate-plots",
+      "i18n": {
+        "zh-Hant": {
+          "label": "頻率頻譜",
+          "alt": "比較乾淨、含雜訊與濾波後訊號的頻域頻譜",
+          "caption": "頻譜可檢查濾波是否降低高頻雜訊，同時保留主要訊號頻率。"
+        }
+      }
+    },
+    {
+      "id": "plot-window-tradeoff",
+      "kind": "plot",
+      "file": "plots/window_tradeoff.png",
+      "label": "Filter Window Trade-off",
+      "alt": "Chart showing output signal quality and error across several smoothing-window sizes",
+      "caption": "Short windows retain detail but remove less noise, while long windows smooth aggressively and may distort the waveform.",
+      "generatedBy": "code-generate-plots",
+      "i18n": {
+        "zh-Hant": {
+          "label": "濾波視窗取捨",
+          "alt": "顯示不同平滑視窗大小之輸出訊號品質與誤差的圖表",
+          "caption": "短視窗保留較多細節但去除較少雜訊；長視窗平滑較強，卻可能扭曲波形。"
+        }
+      }
+    }
+  ],
+  "sections": [
+    {
+      "id": "overview",
+      "title": "Code Case Overview",
+      "shortTitle": "Overview",
+      "summary": "Frame denoising as a measurable recovery problem and inspect the latest quality indicators.",
+      "i18n": {
+        "zh-Hant": {
+          "title": "程式碼案例概覽",
+          "shortTitle": "概覽",
+          "summary": "將去雜訊視為可量化的訊號還原問題，並檢視最新品質指標。"
+        }
+      },
+      "blocks": [
+        {
+          "type": "text",
+          "eyebrow": "CASE PURPOSE",
+          "title": "Recover structure without erasing information",
+          "paragraphs": [
+            "This code case starts with a known clean waveform, adds controlled random noise, and then evaluates how well a moving-average filter reconstructs the reference.",
+            "Because the clean signal is retained in this reference case, SNR and RMSE provide direct and interpretable evidence of filter quality."
+          ],
+          "i18n": {
+            "zh-Hant": {
+              "eyebrow": "案例目的",
+              "title": "還原結構而不抹除資訊",
+              "paragraphs": [
+                "此程式碼案例從已知的乾淨波形開始，加入受控的隨機雜訊，再評估移動平均濾波器重建參考訊號的成效。",
+                "由於此參考案例保留乾淨訊號，SNR 與 RMSE 能直接且清楚地呈現濾波品質。"
+              ]
+            }
+          }
+        },
+        {
+          "type": "metrics",
+          "source": "results",
+          "items": [
+            {
+              "label": "Input SNR",
+              "path": "metrics.inputSNR",
+              "format": "number:2",
+              "detail": "Signal-to-noise ratio before filtering (dB)",
+              "tone": "blue",
+              "i18n": {
+                "zh-Hant": {
+                  "label": "輸入 SNR",
+                  "detail": "濾波前的訊噪比（dB）"
+                }
+              }
+            },
+            {
+              "label": "Output SNR",
+              "path": "metrics.outputSNR",
+              "format": "number:2",
+              "detail": "Signal-to-noise ratio after filtering (dB)",
+              "tone": "cyan",
+              "i18n": {
+                "zh-Hant": {
+                  "label": "輸出 SNR",
+                  "detail": "濾波後的訊噪比（dB）"
+                }
+              }
+            },
+            {
+              "label": "Raw RMSE",
+              "path": "metrics.rawRMSE",
+              "format": "number:4",
+              "detail": "Noisy signal error against the clean reference",
+              "tone": "violet",
+              "i18n": {
+                "zh-Hant": {
+                  "label": "原始 RMSE",
+                  "detail": "含雜訊訊號相對乾淨參考值的誤差"
+                }
+              }
+            },
+            {
+              "label": "Filtered RMSE",
+              "path": "metrics.filteredRMSE",
+              "format": "number:4",
+              "detail": "Filtered signal error against the clean reference",
+              "tone": "green",
+              "i18n": {
+                "zh-Hant": {
+                  "label": "濾波後 RMSE",
+                  "detail": "濾波後訊號相對乾淨參考值的誤差"
+                }
+              }
+            },
+            {
+              "label": "Best window",
+              "path": "metrics.bestWindow",
+              "format": "number:0",
+              "detail": "Window size with the lowest published RMSE",
+              "tone": "blue",
+              "i18n": {
+                "zh-Hant": {
+                  "label": "最佳視窗",
+                  "detail": "已發布結果中 RMSE 最低的視窗大小"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "type": "callout",
+          "tone": "info",
+          "title": "A reference signal enables objective evaluation",
+          "content": "Real measurements rarely include a perfectly clean target. Here it is retained so every filtering decision can be evaluated objectively.",
+          "i18n": {
+            "zh-Hant": {
+              "title": "參考訊號可支援客觀評估",
+              "content": "真實量測通常沒有完全乾淨的目標；本範例保留參考訊號，讓每個濾波決策都能客觀評估。"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "signal-construction",
+      "title": "Construct the Signal",
+      "shortTitle": "Signal Construction",
+      "summary": "Combine interpretable components with deterministic noise to create a reproducible experiment.",
+      "i18n": {
+        "zh-Hant": {
+          "title": "建構訊號",
+          "shortTitle": "訊號建構",
+          "summary": "結合可解釋的訊號成分與固定雜訊，建立可重現的實驗。"
+        }
+      },
+      "blocks": [
+        {
+          "type": "split",
+          "ratio": "1:1",
+          "blocks": [
+            {
+              "type": "code",
+              "artifact": "code-generate-data",
+              "title": "Generate the clean and noisy signals",
+              "i18n": {
+                "zh-Hant": {
+                  "title": "生成乾淨與含雜訊訊號"
+                }
+              }
+            },
+            {
+              "type": "plot",
+              "artifact": "plot-signal-components"
+            }
+          ]
+        },
+        {
+          "type": "steps",
+          "title": "Build a controlled experiment",
+          "items": [
+            {
+              "title": "Create the time base",
+              "content": "Use evenly spaced samples so frequency and filter behavior are easy to interpret.",
+              "i18n": {
+                "zh-Hant": {
+                  "title": "建立時間軸",
+                  "content": "使用等間距取樣，讓頻率與濾波器行為容易解讀。"
+                }
+              }
+            },
+            {
+              "title": "Compose the clean waveform",
+              "content": "Combine low-frequency components that represent the information to preserve.",
+              "i18n": {
+                "zh-Hant": {
+                  "title": "組合乾淨波形",
+                  "content": "結合代表待保留資訊的低頻成分。"
+                }
+              }
+            },
+            {
+              "title": "Add reproducible noise",
+              "content": "Fix the random seed before adding noise so filter comparisons remain fair across runs.",
+              "i18n": {
+                "zh-Hant": {
+                  "title": "加入可重現雜訊",
+                  "content": "加入雜訊前固定隨機種子，確保不同執行之間的濾波比較公平。"
+                }
+              }
+            }
+          ],
+          "i18n": {
+            "zh-Hant": {
+              "title": "建立受控實驗"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "filter-comparison",
+      "title": "Compare Filtered Signals",
+      "shortTitle": "Filter Comparison",
+      "summary": "Inspect how smoothing changes the waveform and calculate objective recovery metrics.",
+      "i18n": {
+        "zh-Hant": {
+          "title": "比較濾波訊號",
+          "shortTitle": "濾波比較",
+          "summary": "觀察平滑處理如何改變波形，並計算客觀的還原品質指標。"
+        }
+      },
+      "blocks": [
+        {
+          "type": "plot",
+          "artifact": "plot-denoising-comparison"
+        },
+        {
+          "type": "split",
+          "ratio": "3:2",
+          "blocks": [
+            {
+              "type": "code",
+              "artifact": "code-evaluate-filters",
+              "title": "Evaluate each window size",
+              "i18n": {
+                "zh-Hant": {
+                  "title": "評估每一種視窗大小"
+                }
+              }
+            },
+            {
+              "type": "callout",
+              "tone": "note",
+              "title": "Read SNR and RMSE together",
+              "content": "Higher output SNR and lower filtered RMSE both indicate improvement, but the plotted waveform is still needed to detect oversmoothing and timing distortion.",
+              "i18n": {
+                "zh-Hant": {
+                  "title": "同時解讀 SNR 與 RMSE",
+                  "content": "較高的輸出 SNR 與較低的濾波後 RMSE 都代表改善，但仍需檢視波形，才能發現過度平滑與時間失真。"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "frequency-analysis",
+      "title": "Inspect the Frequency Spectrum",
+      "shortTitle": "Frequency Spectrum",
+      "summary": "Use frequency-domain evidence to distinguish useful components from broadband noise.",
+      "i18n": {
+        "zh-Hant": {
+          "title": "檢視頻率頻譜",
+          "shortTitle": "頻率頻譜",
+          "summary": "運用頻域證據區分有用訊號成分與寬頻雜訊。"
+        }
+      },
+      "blocks": [
+        {
+          "type": "split",
+          "ratio": "3:2",
+          "blocks": [
+            {
+              "type": "plot",
+              "artifact": "plot-frequency-spectrum"
+            },
+            {
+              "type": "callout",
+              "tone": "info",
+              "title": "What a useful filter should preserve",
+              "content": "Dominant peaks associated with the clean waveform should remain visible while energy spread across higher frequencies is reduced.",
+              "i18n": {
+                "zh-Hant": {
+                  "title": "有效濾波器應保留什麼",
+                  "content": "與乾淨波形相關的主要頻率峰值應保持可見，而分散於較高頻率的能量應被降低。"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "artifact": "code-generate-plots",
+          "title": "Generate time-domain and frequency-domain evidence",
+          "i18n": {
+            "zh-Hant": {
+              "title": "生成時域與頻域證據"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "window-selection",
+      "title": "Choose the Smoothing Window",
+      "shortTitle": "Window Selection",
+      "summary": "Compare candidate windows and explain why the minimum-error choice is not automatically perfect.",
+      "i18n": {
+        "zh-Hant": {
+          "title": "選擇平滑視窗",
+          "shortTitle": "視窗選擇",
+          "summary": "比較候選視窗，並說明最低誤差的選擇為何不一定完美。"
+        }
+      },
+      "blocks": [
+        {
+          "type": "plot",
+          "artifact": "plot-window-tradeoff"
+        },
+        {
+          "type": "table",
+          "title": "Window benchmark",
+          "description": "The highlighted row has the lowest filtered RMSE among the published candidates.",
+          "source": "results",
+          "path": "windows",
+          "highlightMin": "rmse",
+          "columns": [
+            {
+              "label": "Window",
+              "key": "window",
+              "format": "number:0",
+              "i18n": {
+                "zh-Hant": {
+                  "label": "視窗大小"
+                }
+              }
+            },
+            {
+              "label": "Output SNR (dB)",
+              "key": "outputSNR",
+              "format": "number:2",
+              "i18n": {
+                "zh-Hant": {
+                  "label": "輸出 SNR（dB）"
+                }
+              }
+            },
+            {
+              "label": "Filtered RMSE",
+              "key": "rmse",
+              "format": "number:4",
+              "i18n": {
+                "zh-Hant": {
+                  "label": "濾波後 RMSE"
+                }
+              }
+            }
+          ],
+          "i18n": {
+            "zh-Hant": {
+              "title": "視窗效能比較",
+              "description": "醒目標示的列是在已發布候選視窗中，濾波後 RMSE 最低的結果。"
+            }
+          }
+        },
+        {
+          "type": "callout",
+          "tone": "warning",
+          "title": "Do not optimize one number blindly",
+          "content": "A window can minimize average error while weakening short-lived features. Confirm the numerical choice against both plots and the intended application.",
+          "i18n": {
+            "zh-Hant": {
+              "title": "不要盲目最佳化單一數字",
+              "content": "某個視窗可能降低平均誤差，卻削弱短暫特徵；應同時依據圖表與實際用途確認數值選擇。"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "source-code",
+      "title": "Trace the Source Code",
+      "shortTitle": "Source Code",
+      "summary": "Connect the publishing entry point with data generation, evaluation, and plot export functions.",
+      "i18n": {
+        "zh-Hant": {
+          "title": "追蹤原始程式碼",
+          "shortTitle": "原始碼",
+          "summary": "串連發布入口、資料生成、濾波評估與圖表匯出函式。"
+        }
+      },
+      "blocks": [
+        {
+          "type": "text",
+          "eyebrow": "IMPLEMENTATION MAP",
+          "title": "One orchestration function, three focused helpers",
+          "paragraphs": [
+            "The main function coordinates the run and publishes the resulting JSON, MATLAB files, and plots.",
+            "Separating signal generation, filter evaluation, and visualization keeps each processing responsibility easy to inspect and reuse."
+          ],
+          "i18n": {
+            "zh-Hant": {
+              "eyebrow": "實作地圖",
+              "title": "一個協調入口與三個專注輔助函式",
+              "paragraphs": [
+                "主函式負責協調整次執行，並發布產生的 JSON、MATLAB 檔案與圖表。",
+                "將訊號生成、濾波評估與視覺化分開，可讓每項處理職責更容易檢視與重用。"
+              ]
+            }
+          }
+        },
+        {
+          "type": "code",
+          "artifact": "code-main",
+          "title": "Publishing entry point",
+          "i18n": {
+            "zh-Hant": {
+              "title": "發布入口程式"
+            }
+          }
+        },
+        {
+          "type": "split",
+          "ratio": "1:1",
+          "blocks": [
+            {
+              "type": "code",
+              "artifact": "code-evaluate-filters",
+              "title": "Filter evaluation helper",
+              "i18n": {
+                "zh-Hant": {
+                  "title": "濾波評估輔助函式"
+                }
+              }
+            },
+            {
+              "type": "code",
+              "artifact": "code-generate-plots",
+              "title": "Plot export helper",
+              "i18n": {
+                "zh-Hant": {
+                  "title": "圖表匯出輔助函式"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

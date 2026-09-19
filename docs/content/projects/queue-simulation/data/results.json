@@ -1,0 +1,37 @@
+{
+  "metrics": {
+    "meanWait": 9.17,
+    "p95Wait": 29.893,
+    "utilization": 0.872,
+    "probabilityOfWait": 0.875,
+    "maxQueue": 34
+  },
+  "scenarios": [
+    {
+      "name": "low",
+      "arrivalRate": 0.55,
+      "loadFactor": 0.55,
+      "meanWait": 1.095,
+      "p95Wait": 4.804,
+      "utilization": 0.567
+    },
+    {
+      "name": "balanced",
+      "arrivalRate": 0.8,
+      "loadFactor": 0.8,
+      "meanWait": 9.17,
+      "p95Wait": 29.893,
+      "utilization": 0.872
+    },
+    {
+      "name": "high",
+      "arrivalRate": 0.95,
+      "loadFactor": 0.95,
+      "meanWait": 10.717,
+      "p95Wait": 30.522,
+      "utilization": 0.915
+    }
+  ],
+  "project": "Queue Simulation Lab",
+  "lastUpdated": "2026-09-19 17:06:29"
+}

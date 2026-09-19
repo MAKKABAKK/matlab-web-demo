@@ -1,0 +1,74 @@
+{
+  "metrics": {
+    "inputSNR": 1.57,
+    "outputSNR": 8.155,
+    "rawRMSE": 0.6009,
+    "filteredRMSE": 0.2816,
+    "bestWindow": 7
+  },
+  "windows": [
+    {
+      "window": 1,
+      "rmse": 0.6009,
+      "outputSNR": 1.57
+    },
+    {
+      "window": 3,
+      "rmse": 0.3503,
+      "outputSNR": 6.258
+    },
+    {
+      "window": 5,
+      "rmse": 0.282,
+      "outputSNR": 8.141
+    },
+    {
+      "window": 7,
+      "rmse": 0.2816,
+      "outputSNR": 8.155
+    },
+    {
+      "window": 9,
+      "rmse": 0.3212,
+      "outputSNR": 7.009
+    },
+    {
+      "window": 11,
+      "rmse": 0.3709,
+      "outputSNR": 5.761
+    },
+    {
+      "window": 15,
+      "rmse": 0.4373,
+      "outputSNR": 4.331
+    },
+    {
+      "window": 21,
+      "rmse": 0.4404,
+      "outputSNR": 4.269
+    },
+    {
+      "window": 31,
+      "rmse": 0.5634,
+      "outputSNR": 2.129
+    },
+    {
+      "window": 41,
+      "rmse": 0.7414,
+      "outputSNR": -0.255
+    },
+    {
+      "window": 61,
+      "rmse": 0.8412,
+      "outputSNR": -1.352
+    }
+  ],
+  "configuration": {
+    "sampleRate": 200,
+    "durationSeconds": 10,
+    "noiseStandardDeviation": 0.55,
+    "impulseCount": 14
+  },
+  "project": "Signal Denoising Lab",
+  "lastUpdated": "2026-09-19 17:06:28"
+}
