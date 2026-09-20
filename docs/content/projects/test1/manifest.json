@@ -1,0 +1,75 @@
+{
+  "schemaVersion": "2.1",
+  "id": "test1",
+  "title": "Passenger Flow Forecasting",
+  "eyebrow": "PUBLISHED MATLAB PROJECT",
+  "description": "A MATLAB passenger flow forecasting project using a simple autoregressive baseline. The example generates synthetic hourly passenger-flow data, forecasts the final 48 hours, and compares the forecast against a last-value baseline.",
+  "version": "e0b7506dc55b1c69",
+  "lastUpdated": "2026-09-20 09:54:27",
+  "artifacts": [
+    {
+      "id": "plot-comparison",
+      "kind": "plot",
+      "file": "plots/comparison.jpg",
+      "label": "Comparison",
+      "alt": "Comparison",
+      "caption": "Comparison"
+    },
+    {
+      "id": "plot-result",
+      "kind": "plot",
+      "file": "plots/result.png",
+      "label": "Result",
+      "alt": "Result",
+      "caption": "Result"
+    },
+    {
+      "id": "code-forecast",
+      "kind": "matlab-code",
+      "file": "code/forecast.m",
+      "label": "forecast.m"
+    },
+    {
+      "id": "code-main",
+      "kind": "matlab-code",
+      "file": "code/main.m",
+      "label": "main.m"
+    }
+  ],
+  "sections": [
+    {
+      "id": "overview",
+      "title": "Overview",
+      "shortTitle": "Overview",
+      "summary": "Project images.",
+      "blocks": [
+        {
+          "type": "plot",
+          "artifact": "plot-comparison"
+        },
+        {
+          "type": "plot",
+          "artifact": "plot-result"
+        }
+      ]
+    },
+    {
+      "id": "source-code",
+      "title": "Source Code",
+      "shortTitle": "Source Code",
+      "summary": "MATLAB source files.",
+      "blocks": [
+        {
+          "type": "code",
+          "artifact": "code-forecast",
+          "title": "forecast.m"
+        },
+        {
+          "type": "code",
+          "artifact": "code-main",
+          "title": "main.m"
+        }
+      ]
+    }
+  ]
+}
