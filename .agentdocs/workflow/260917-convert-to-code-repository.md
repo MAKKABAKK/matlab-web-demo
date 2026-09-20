@@ -1,5 +1,9 @@
 # 改造为 MATLAB 代码案例仓库
 
+> **V1 历史记录：** 本文记录已经完成的 V1 改造，不再定义 V2 正常发布
+> 流程。V2 请以 `../publisher/architecture.md` 为准；其中 Cloud Publisher
+> 不运行 MATLAB，并通过 GitHub Actions artifact 部署 Pages。
+
 ## 覆盖声明
 
 本需求完全取代此前“教学用具、单项目教程、课程/课时”产品定义。后续设计、文案和实现不得再把网站理解为单一项目教学课件。

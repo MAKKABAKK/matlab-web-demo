@@ -1,10 +1,19 @@
 const content = window.MatlabCaseRepositoryContent;
 const markdown = window.MatlabRepositoryMarkdown;
-if (!content || !markdown) throw new Error("Repository utilities failed to load.");
+const navigation = window.MatlabRepositoryNavigation;
+if (!content || !markdown || !navigation) throw new Error("Repository utilities failed to load.");
 
 function readStoredLocale() {
   try {
     return localStorage.getItem(content.STORAGE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function readExpandedCategories() {
+  try {
+    return localStorage.getItem(navigation.STORAGE_KEY);
   } catch {
     return null;
   }
@@ -26,7 +35,13 @@ const state = {
   }),
   navigationToken: 0,
   renderToken: 0,
+  treeCountToken: 0,
   expandedCategories: new Set(),
+  expansionInitialized: false,
+  sectionCounts: new Map(),
+  sectionCountFailures: new Set(),
+  sectionCountPending: new Map(),
+  manifestCache: navigation.createAsyncCache(),
   dataCache: new Map()
 };
 
@@ -81,6 +96,25 @@ function rememberLocale(locale) {
     localStorage.setItem(content.STORAGE_KEY, locale);
   } catch {
     // 隱私模式可能停用 localStorage；目前頁面的語言仍然有效。
+  }
+}
+
+function rememberExpandedCategories() {
+  try {
+    localStorage.setItem(
+      navigation.STORAGE_KEY,
+      navigation.serializeExpandedCategories(state.expandedCategories)
+    );
+  } catch {
+    // 隱私模式可能停用 localStorage；目前頁面的展開狀態仍然有效。
+  }
+}
+
+function ensureActiveCategory(categoryId) {
+  const next = navigation.ensureCategoryExpanded(state.expandedCategories, categoryId);
+  if (next.size !== state.expandedCategories.size) {
+    state.expandedCategories = next;
+    rememberExpandedCategories();
   }
 }
 
@@ -162,14 +196,50 @@ function projectRoute(projectId) {
   return `#/project/${encodeURIComponent(projectId)}`;
 }
 
-function populateRepositoryTree() {
+function loadProjectManifest(project) {
+  return state.manifestCache.get(project.id, async () => {
+    const manifestUrl = resolveRelativeUrl(state.catalogUrl, project.manifest);
+    const manifest = validateManifest(await fetchJson(manifestUrl), project.id);
+    return { manifest, manifestUrl };
+  });
+}
+
+async function hydrateSectionCounts() {
+  const projects = content.catalogProjects(state.catalog).filter((project) => (
+    !state.sectionCounts.has(project.id)
+    && !state.sectionCountFailures.has(project.id)
+    && !state.sectionCountPending.has(project.id)
+  ));
+  if (!projects.length) return;
+  const treeCountToken = ++state.treeCountToken;
+  const batch = Symbol("section-count-batch");
+  projects.forEach((project) => state.sectionCountPending.set(project.id, batch));
+
+  const results = await Promise.allSettled(projects.map(async (project) => {
+    const { manifest } = await loadProjectManifest(project);
+    return { projectId: project.id, count: manifest.sections.length };
+  }));
+  projects.forEach((project) => {
+    if (state.sectionCountPending.get(project.id) === batch) state.sectionCountPending.delete(project.id);
+  });
+  if (treeCountToken !== state.treeCountToken) return;
+  results.forEach((result, index) => {
+    if (result.status === "fulfilled") {
+      state.sectionCounts.set(result.value.projectId, result.value.count);
+    } else {
+      state.sectionCountFailures.add(projects[index].id);
+      console.warn(`Section count unavailable for ${projects[index].id}:`, result.reason);
+    }
+  });
+  populateRepositoryTree(false);
+}
+
+function populateRepositoryTree(loadCounts = true) {
   const projects = content.catalogProjects(state.catalog);
   elements.caseCount.textContent = t("repository.caseCount", { count: projects.length });
 
   const groups = state.catalog.categories.map((category) => {
     const group = createElement("section", "category-group");
-    const isActiveCategory = state.category?.id === category.id;
-    if (isActiveCategory) state.expandedCategories.add(category.id);
     const isExpanded = state.expandedCategories.has(category.id);
 
     const toggle = createElement("button", "category-toggle");
@@ -194,9 +264,10 @@ function populateRepositoryTree() {
         createElement("span", "case-link-copy")
       );
       const copy = link.querySelector(".case-link-copy");
+      const sectionCount = state.sectionCounts.get(project.id);
       copy.append(
         createElement("strong", "", field(project, "title")),
-        createElement("small", "", field(project, "topic") || "")
+        createElement("small", "", sectionCount == null ? "" : t("sections.count", { count: sectionCount }))
       );
       if (state.project?.id === project.id) {
         link.classList.add("active");
@@ -209,13 +280,18 @@ function populateRepositoryTree() {
       const nextExpanded = toggle.getAttribute("aria-expanded") !== "true";
       toggle.setAttribute("aria-expanded", String(nextExpanded));
       list.hidden = !nextExpanded;
-      if (nextExpanded) state.expandedCategories.add(category.id);
-      else state.expandedCategories.delete(category.id);
+      state.expandedCategories = navigation.setCategoryExpanded(
+        state.expandedCategories,
+        category.id,
+        nextExpanded
+      );
+      rememberExpandedCategories();
     });
     group.append(toggle, list);
     return group;
   });
   elements.categoryTree.replaceChildren(...groups);
+  if (loadCounts) void hydrateSectionCounts();
 }
 
 function populateSectionNav() {
@@ -648,6 +724,19 @@ async function handleRoute(options = {}) {
       if (navigationToken !== state.navigationToken) return;
       state.catalogUrl = catalogUrl;
       state.catalog = catalog;
+      if (!state.expansionInitialized) {
+        state.expandedCategories = navigation.parseExpandedCategories(
+          readExpandedCategories(),
+          catalog.categories.map((category) => category.id)
+        );
+        state.expansionInitialized = true;
+      } else {
+        state.expandedCategories = navigation.parseExpandedCategories(
+          navigation.serializeExpandedCategories(state.expandedCategories),
+          catalog.categories.map((category) => category.id)
+        );
+        rememberExpandedCategories();
+      }
       populateRepositoryTree();
     }
 
@@ -658,15 +747,17 @@ async function handleRoute(options = {}) {
       || projects.find((item) => item.id === fallbackProjectId)
       || projects[0];
 
-    const manifestUrl = resolveRelativeUrl(state.catalogUrl, project.manifest);
+    const category = content.findProjectCategory(state.catalog, project.id);
     const shouldReloadManifest = !state.manifest || state.project?.id !== project.id || options.force;
     if (shouldReloadManifest) {
-      const manifest = validateManifest(await fetchJson(manifestUrl), project.id);
+      ensureActiveCategory(category?.id);
+      const { manifest, manifestUrl } = await loadProjectManifest(project);
       if (navigationToken !== state.navigationToken) return;
       state.project = project;
-      state.category = content.findProjectCategory(state.catalog, project.id);
+      state.category = category;
       state.manifest = manifest;
       state.manifestBase = new URL("./", manifestUrl);
+      state.sectionCounts.set(project.id, manifest.sections.length);
     }
 
     const section = state.manifest.sections.find((item) => item.id === route.sectionId) || state.manifest.sections[0];
@@ -692,6 +783,11 @@ elements.refreshButton.addEventListener("click", async () => {
   state.category = null;
   state.manifest = null;
   state.section = null;
+  state.treeCountToken += 1;
+  state.sectionCounts.clear();
+  state.sectionCountFailures.clear();
+  state.sectionCountPending.clear();
+  state.manifestCache.clear();
   state.dataCache.clear();
   await handleRoute({ force: true, loadingMessage: t("loading.refresh") });
   elements.categoryTree.removeAttribute("aria-busy");

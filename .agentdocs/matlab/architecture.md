@@ -1,11 +1,15 @@
 # MATLAB 案例与发布架构
 
+> **LEGACY / OPTIONAL：** 本文只描述冻结的 V1 MATLAB pipeline。V2 正常
+> 发布以 `projects/` 为 source of truth，由 Cloud Publisher 整理现成 `.m`
+> 与图片，不运行本目录任何入口。
+
 ## 产品边界
 
 - MATLAB 目录提供机器学习代码仓库中的独立可运行案例。
 - 每个案例独立生成数据、指标、图表和源码副本。
 - 分类归属由 schema 2.2 catalog 管理，不写入 MATLAB 算法函数。
-- MATLAB 只在本地或 CI 发布阶段运行；网页只读取发布后的静态文件。
+- V1 MATLAB 可在本地手动运行；V2 CI 与网页均不运行 MATLAB。
 
 ## 目录职责
 
