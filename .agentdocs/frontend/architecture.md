@@ -14,6 +14,8 @@
 - `docs/js/content-utils.js`：无 DOM 的 schema 验证、本地化与安全路径规则，
   可由浏览器和 Node.js 测试复用。
 - `docs/js/markdown.js`：零依赖的安全 Markdown tokenizer 与 DOM renderer。
+- `docs/js/navigation-utils.js`：分类展开状态解析、持久化转换与 manifest
+  Promise cache，可由浏览器和 Node.js 测试复用。
 - `docs/js/app.js`：分类树、案例与章节路由、异步加载、DOM 渲染、缓存
   和交互状态。
 - `docs/css/style.css`：Corporate Trust 设计令牌、分类/案例导航、内容块
@@ -37,6 +39,10 @@ catalog.categories[]
 - hash 保持 `#/project/<project-id>/section/<section-id>`，分类不写入 hash。
 - 无效案例回退到 catalog 默认案例；无效章节回退到该案例第一章节。
 - 分类折叠状态属于显示偏好，不得改变当前案例路由。
+- 多个分类可同时展开；localStorage 只保存仍存在的 category ID。首次载入
+  或 deep link 必须确保 current case 所属分类可见。
+- case 下方的 section count 来自对应 manifest 的 `sections.length`，不得
+  复制 catalog topic。请求使用共享 Promise cache，单个失败只省略该 count。
 
 ## 内容块
 
@@ -80,6 +86,7 @@ manifest schema 2.1 的 block 类型为 `text`、`code`、`plot`、`metrics`、
 - 所有交互目标至少 44px。
 - 分类标题必须可由键盘展开/收起，并暴露正确的 `aria-expanded`。
 - 案例和章节当前项使用 `aria-current`，章节切换后焦点移到内容标题。
-- 图表必须提供英文与繁中替代文字。
+- 图表必须提供英文替代文字；有繁中覆盖时随语言切换，V2 无翻译输入时
+  按字段回退英文。
 - 320px 以上不得产生页面级横向滚动；代码、Markdown 代码块与宽表只
   允许各自容器内部滚动。

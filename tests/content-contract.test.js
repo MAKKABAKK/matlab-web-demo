@@ -7,8 +7,9 @@ const test = require("node:test");
 const utils = require("../docs/js/content-utils.js");
 
 const ROOT = path.resolve(__dirname, "..");
-const DOCS = path.join(ROOT, "docs");
+const DOCS = path.resolve(process.env.DOCS_ROOT || path.join(ROOT, "docs"));
 const CONTENT = path.join(DOCS, "content");
+const LEGACY_PROJECT_IDS = new Set(["passenger-flow", "signal-denoising", "queue-simulation", "heat-diffusion"]);
 const RETIRED_PRODUCT_TERMS = /\b(?:tutorials?|lessons?|courses?)\b|教學|教学|課程|课程|課時|课时/iu;
 
 function readJson(file) {
@@ -36,19 +37,25 @@ function assertFiniteNumbers(value, location) {
   }
 }
 
-function assertLocalized(record, fields, location) {
+function assertLocalized(record, fields, location, requireTranslation = true, allowEmptyFields = new Set()) {
   const visibleFields = fields.filter((field) => Object.prototype.hasOwnProperty.call(record, field));
   if (!visibleFields.length) return;
-  assert.ok(record.i18n?.["zh-Hant"], `${location} 缺少繁體中文內容`);
+  const translation = record.i18n?.["zh-Hant"];
+  if (requireTranslation) assert.ok(translation, `${location} 缺少繁體中文內容`);
   visibleFields.forEach((field) => {
-    assert.ok(
-      Object.prototype.hasOwnProperty.call(record.i18n["zh-Hant"], field),
-      `${location}.${field} 缺少繁體中文內容`
-    );
-    assertVisibleValue(record[field], `${location}.${field}`);
-    assertVisibleValue(record.i18n["zh-Hant"][field], `${location}.i18n.zh-Hant.${field}`);
+    if (allowEmptyFields.has(field) && typeof record[field] === "string") {
+      assert.equal(typeof record[field], "string", `${location}.${field} 必須是字串`);
+    } else {
+      assertVisibleValue(record[field], `${location}.${field}`);
+    }
     assertNoRetiredProductTerms(record[field], `${location}.${field}`);
-    assertNoRetiredProductTerms(record.i18n["zh-Hant"][field], `${location}.i18n.zh-Hant.${field}`);
+    if (requireTranslation) {
+      assert.ok(Object.prototype.hasOwnProperty.call(translation, field), `${location}.${field} 缺少繁體中文內容`);
+    }
+    if (Object.prototype.hasOwnProperty.call(translation || {}, field)) {
+      assertVisibleValue(translation[field], `${location}.i18n.zh-Hant.${field}`);
+      assertNoRetiredProductTerms(translation[field], `${location}.i18n.zh-Hant.${field}`);
+    }
   });
 }
 
@@ -94,8 +101,8 @@ function markdownProse(markdown) {
     .replace(/<[^>]+>/g, " ");
 }
 
-function inspectBlock(block, artifacts, location, projectId, coverage) {
-  assertLocalized(block, ["eyebrow", "title", "description", "caption", "content", "paragraphs"], location);
+function inspectBlock(block, artifacts, location, projectId, coverage, requireTranslation) {
+  assertLocalized(block, ["eyebrow", "title", "description", "caption", "content", "paragraphs"], location, requireTranslation);
   const expectedKind = {
     plot: "plot",
     code: "matlab-code",
@@ -112,23 +119,46 @@ function inspectBlock(block, artifacts, location, projectId, coverage) {
     assert.equal(artifacts.get(block.source).kind, "json", `${location} 資料來源必須是 JSON`);
   }
   (block.items || []).forEach((item, index) => {
-    assertLocalized(item, ["label", "detail", "detailTemplate", "title", "content"], `${location}.items[${index}]`);
+    assertLocalized(item, ["label", "detail", "detailTemplate", "title", "content"], `${location}.items[${index}]`, requireTranslation);
   });
   (block.columns || []).forEach((column, index) => {
     const fields = column.label === "RMSE" ? ["valueLabels"] : ["label", "valueLabels"];
-    assertLocalized(column, fields, `${location}.columns[${index}]`);
+    assertLocalized(column, fields, `${location}.columns[${index}]`, requireTranslation);
   });
   (block.blocks || []).forEach((child, index) => {
-    inspectBlock(child, artifacts, `${location}.blocks[${index}]`, projectId, coverage);
+    inspectBlock(child, artifacts, `${location}.blocks[${index}]`, projectId, coverage, requireTranslation);
   });
 }
 
-function assertPng(file) {
+function assertImage(file) {
   const buffer = fs.readFileSync(file);
-  assert.ok(buffer.length > 24, `${file} PNG 檔案過小`);
-  assert.equal(buffer.subarray(0, 8).toString("hex"), "89504e470d0a1a0a", `${file} 不是有效 PNG`);
-  assert.ok(buffer.readUInt32BE(16) >= 300, `${file} 寬度過小`);
-  assert.ok(buffer.readUInt32BE(20) >= 200, `${file} 高度過小`);
+  const extension = path.extname(file).toLowerCase();
+  if (extension === ".png") {
+    assert.ok(buffer.length > 24, `${file} PNG 檔案過小`);
+    assert.equal(buffer.subarray(0, 8).toString("hex"), "89504e470d0a1a0a", `${file} 不是有效 PNG`);
+    assert.ok(buffer.readUInt32BE(16) > 0, `${file} 寬度無效`);
+    assert.ok(buffer.readUInt32BE(20) > 0, `${file} 高度無效`);
+    return;
+  }
+  assert.ok([".jpg", ".jpeg"].includes(extension), `${file} 圖片副檔名必須是 PNG/JPG/JPEG`);
+  assert.ok(buffer.length >= 4, `${file} JPEG 檔案過小`);
+  assert.equal(buffer.subarray(0, 2).toString("hex"), "ffd8", `${file} 缺少 JPEG SOI`);
+  assert.equal(buffer.subarray(-2).toString("hex"), "ffd9", `${file} 缺少 JPEG EOI`);
+  let offset = 2;
+  let dimensions = null;
+  const frameMarkers = new Set([0xc0, 0xc1, 0xc2, 0xc3, 0xc5, 0xc6, 0xc7, 0xc9, 0xca, 0xcb, 0xcd, 0xce, 0xcf]);
+  while (offset + 4 <= buffer.length - 2) {
+    assert.equal(buffer[offset], 0xff, `${file} JPEG marker stream 無效`);
+    while (buffer[offset] === 0xff) offset += 1;
+    const marker = buffer[offset++];
+    if (marker === 0xda || marker === 0xd9) break;
+    if (marker === 0x01 || (marker >= 0xd0 && marker <= 0xd7)) continue;
+    const length = buffer.readUInt16BE(offset);
+    assert.ok(length >= 2 && offset + length <= buffer.length, `${file} JPEG segment 長度無效`);
+    if (frameMarkers.has(marker)) dimensions = [buffer.readUInt16BE(offset + 3), buffer.readUInt16BE(offset + 5)];
+    offset += length;
+  }
+  assert.ok(dimensions && dimensions.every((value) => value > 0), `${file} JPEG 尺寸無效`);
 }
 
 test("分類樹、案例內容、翻譯與資源符合 V2.2 契約", () => {
@@ -145,18 +175,26 @@ test("分類樹、案例內容、翻譯與資源符合 V2.2 契約", () => {
   const projectIds = new Set();
   const projects = [];
   catalog.categories.forEach((category, categoryIndex) => {
+    const categoryRequiresTranslation = category.id !== "published-projects";
     assert.equal(typeof category.title, "string", `catalog.categories[${categoryIndex}] 缺少英文標題`);
     assert.ok(Array.isArray(category.projects) && category.projects.length, `${category.id} 必須包含案例`);
     assert.ok(!categoryIds.has(category.id), `分類 ID 重複：${category.id}`);
     categoryIds.add(category.id);
-    assertLocalized(category, ["title", "description"], `catalog.categories[${categoryIndex}]`);
+    assertLocalized(category, ["title", "description"], `catalog.categories[${categoryIndex}]`, categoryRequiresTranslation);
 
     category.projects.forEach((project, projectIndex) => {
       const location = `catalog.categories[${categoryIndex}].projects[${projectIndex}]`;
       assert.equal(typeof project.title, "string", `${location} 缺少英文標題`);
       assert.ok(!projectIds.has(project.id), `案例 ID 必須跨分類唯一：${project.id}`);
       projectIds.add(project.id);
-      assertLocalized(project, ["title", "description", "topic"], location);
+      const requiresTranslation = LEGACY_PROJECT_IDS.has(project.id);
+      assertLocalized(
+        project,
+        ["title", "description", "topic"],
+        location,
+        requiresTranslation,
+        requiresTranslation ? new Set() : new Set(["description"])
+      );
       projects.push(project);
     });
   });
@@ -169,6 +207,7 @@ test("分類樹、案例內容、翻譯與資源符合 V2.2 契約", () => {
   };
 
   projects.forEach((project) => {
+    const requiresTranslation = LEGACY_PROJECT_IDS.has(project.id);
     const manifestFile = path.resolve(path.dirname(catalogFile), project.manifest);
     assert.ok(manifestFile.startsWith(CONTENT + path.sep), `${project.id} manifest 必須位於 content 目錄`);
     assert.ok(fs.existsSync(manifestFile), `${project.id} manifest 不存在`);
@@ -179,7 +218,13 @@ test("分類樹、案例內容、翻譯與資源符合 V2.2 契約", () => {
       utils.MANIFEST_SCHEMA_VERSION,
       `${project.id} manifest schema 必須符合目前內容契約`
     );
-    assertLocalized(manifest, ["title", "eyebrow", "description"], `manifest.${project.id}`);
+    assertLocalized(
+      manifest,
+      ["title", "eyebrow", "description"],
+      `manifest.${project.id}`,
+      requiresTranslation,
+      requiresTranslation ? new Set() : new Set(["description"])
+    );
     const projectDirectory = path.dirname(manifestFile);
     const artifacts = new Map(manifest.artifacts.map((artifact) => [artifact.id, artifact]));
 
@@ -216,8 +261,8 @@ test("分類樹、案例內容、翻譯與資源符合 V2.2 契約", () => {
         }
       });
       if (artifact.kind === "plot") {
-        assertLocalized(artifact, ["label", "alt", "caption"], `manifest.${project.id}.artifacts[${artifactIndex}]`);
-        assertPng(file);
+        assertLocalized(artifact, ["label", "alt", "caption"], `manifest.${project.id}.artifacts[${artifactIndex}]`, requiresTranslation);
+        assertImage(file);
       } else if (artifact.kind === "json") {
         assertFiniteNumbers(readJson(file), `${project.id}.${artifact.file}`);
       } else if (artifact.kind === "matlab-code") {
@@ -231,14 +276,15 @@ test("分類樹、案例內容、翻譯與資源符合 V2.2 契約", () => {
     });
 
     manifest.sections.forEach((section, sectionIndex) => {
-      assertLocalized(section, ["title", "shortTitle", "summary"], `manifest.${project.id}.sections[${sectionIndex}]`);
+      assertLocalized(section, ["title", "shortTitle", "summary"], `manifest.${project.id}.sections[${sectionIndex}]`, requiresTranslation);
       section.blocks.forEach((block, blockIndex) => {
         inspectBlock(
           block,
           artifacts,
           `manifest.${project.id}.sections[${sectionIndex}].blocks[${blockIndex}]`,
           project.id,
-          coverage
+          coverage,
+          requiresTranslation
         );
       });
     });
@@ -274,6 +320,16 @@ test("所有可見產品文案都不再使用舊教學定位詞", () => {
     .map((match) => JSON.parse(match[1]));
   assert.ok(messageValues.length >= 10, "UI_MESSAGES 可見訊息擷取失敗");
   messageValues.forEach((value, index) => assertNoRetiredProductTerms(value, `UI_MESSAGES value ${index}`));
+});
+
+test("V2 英文 fallback 允许没有翻译和空项目简介", () => {
+  assert.doesNotThrow(() => assertLocalized(
+    { title: "Uploaded Project", description: "" },
+    ["title", "description"],
+    "v2-project",
+    false,
+    new Set(["description"])
+  ));
 });
 
 test("程式碼檔案不超過 1000 行且頁面不依賴遠端資源", () => {

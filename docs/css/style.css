@@ -168,7 +168,12 @@ button, select { min-height: 44px; }
   transition: border-color 0.2s ease-out, background 0.2s ease-out;
 }
 .category-toggle:hover { border-color: rgba(224, 231, 255, 0.3); background: rgba(255, 255, 255, 0.09); }
-.category-toggle strong { overflow: hidden; font-size: 0.82rem; text-overflow: ellipsis; white-space: nowrap; }
+.category-toggle strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
 .category-toggle small {
   display: grid;
   min-width: 22px;
@@ -181,7 +186,13 @@ button, select { min-height: 44px; }
 }
 .category-chevron { color: #a5b4fc; font-size: 1.15rem; line-height: 1; transition: transform 0.2s ease-out; }
 .category-toggle[aria-expanded="true"] .category-chevron { transform: rotate(90deg); }
-.category-projects { display: grid; gap: 5px; padding: 6px 0 2px 16px; }
+.category-projects {
+  display: grid;
+  gap: 5px;
+  margin-left: 13px;
+  padding: 6px 0 2px 10px;
+  border-left: 1px solid rgba(196, 181, 253, 0.26);
+}
 .case-link {
   display: grid;
   min-width: 0;
@@ -196,7 +207,12 @@ button, select { min-height: 44px; }
   transition: color 0.2s ease-out, background 0.2s ease-out, border-color 0.2s ease-out, transform 0.2s ease-out;
 }
 .case-link:hover { color: white; background: rgba(255, 255, 255, 0.08); transform: translateX(2px); }
-.case-link.active { color: white; background: rgba(255, 255, 255, 0.15); border-color: rgba(224, 231, 255, 0.22); }
+.case-link.active {
+  color: white;
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(224, 231, 255, 0.22);
+  box-shadow: inset 3px 0 #c4b5fd;
+}
 .case-link-mark {
   display: grid;
   width: 26px;
@@ -208,9 +224,9 @@ button, select { min-height: 44px; }
   font: 800 0.67rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 .case-link-copy { min-width: 0; }
-.case-link-copy strong, .case-link-copy small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.case-link-copy strong { font-size: 0.78rem; }
-.case-link-copy small { color: #a5b4fc; font-size: 0.67rem; }
+.case-link-copy strong, .case-link-copy small { display: block; overflow-wrap: anywhere; }
+.case-link-copy strong { font-size: 0.78rem; line-height: 1.35; }
+.case-link-copy small { min-height: 1.2em; margin-top: 2px; color: #a5b4fc; font-size: 0.67rem; line-height: 1.3; }
 .case-outline { padding: 18px 4px 22px; }
 .active-case-label { margin: 0 6px 9px; color: #ddd6fe; font-size: 0.76rem; font-weight: 600; }
 
@@ -874,7 +890,7 @@ noscript { display: block; padding: 20px; color: #991b1b; background: #fef2f2; t
   .brand-mark { transform: none; }
   .repository-browser { padding: 15px 4px 14px; }
   .category-tree { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .category-projects { padding-left: 8px; }
+  .category-projects { margin-left: 9px; padding-left: 7px; }
   .case-outline { padding: 15px 4px 6px; }
   .nav-list { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
   .nav-item { width: 100%; padding: 7px 9px; }

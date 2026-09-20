@@ -1,204 +1,178 @@
 # MATLAB Machine Learning Code Repository
 
-This repository is a content-driven collection of independent MATLAB machine
-learning cases. Its information architecture is:
+This repository is a static, content-driven collection of independent MATLAB
+code cases. The website reads Catalog 2.2 and Manifest 2.1 files; it never runs
+MATLAB and has no backend or database.
+
+For V2, `projects/` is the source of truth for new and updated projects. A
+maintainer uploads an already-written `.m` file and already-generated image;
+GitHub Actions validates the folder, builds the existing website contract, runs
+the tests, and deploys GitHub Pages.
 
 ```text
-Category tree
-    ↓
-Independent case
-    ↓
-Case sections, MATLAB source, results, plots, and local documents
-```
-
-MATLAB produces static assets. The HTML/CSS/JavaScript application reads those
-assets and presents them as a searchable repository. The browser never runs
-MATLAB and there is no execution service, backend, or database.
-
-```text
-MATLAB case programs
-    ↓
-JSON data + PNG plots + copied source + optional local Markdown
-    ↓
-schema 2.2 catalog + independent case manifests
+projects/<project-id>/
+    ↓ Cloud Publisher (no MATLAB execution)
+docs/content/ Catalog 2.2 + Manifest 2.1
     ↓
 Static repository browser
     ↓
 GitHub Pages
 ```
 
-## Repository capabilities
+The four V1 projects and the MATLAB publishing pipeline remain in the repository
+as legacy, backward-compatible content. V2 does not modify or invoke them.
 
-- Category-first navigation with multiple independent cases per category
-- Four runnable cases: passenger flow, signal denoising, queue simulation, and
-  heat diffusion
-- Case-owned sections and stable hash deep links such as
-  `#/project/passenger-flow/section/forecast`
-- English base fields with adjacent Traditional Chinese `i18n.zh-Hant`
-  overrides
-- Content blocks for text, code, plots, metrics, tables, callouts, steps, and
-  split layouts
-- Manifest schema 2.1 support for local `markdown` artifacts and blocks
-- Independent loading and failure isolation for each case and content block
-- Responsive source viewers, plots, tables, category navigation, and case
-  section navigation
-- Shared MATLAB publishing helpers and a one-command `run_all` entry point
-- Zero-dependency Node.js and Python contract tests
-- GitHub Pages repository-subpath compatibility
-- No React, Vue, npm package, CDN, remote content, backend, or database
+## HOW TO PUBLISH A PROJECT
+
+No local command, Git client, MATLAB installation, JSON editing, or preview is
+required.
+
+1. Create one project folder. Its name must use lowercase ASCII letters,
+   numbers, and single hyphens, for example `passenger-flow-forecasting`.
+2. Add `README.md`. Put the project name in the first `# Heading`; put the
+   optional description below it.
+3. Add one or more non-empty MATLAB `.m` files.
+4. Add one or more valid `.png`, `.jpg`, or `.jpeg` images.
+5. In GitHub, open the repository's `projects/` directory and upload the project
+   folder and its files.
+6. Commit the changes.
+7. Wait for the **Publish projects and GitHub Pages** workflow to pass.
+8. Open GitHub Pages and select the project under **Published Projects**.
+
+Example:
+
+```text
+projects/
+└── passenger-flow-forecasting/
+    ├── README.md
+    ├── main.m
+    ├── forecast.m
+    ├── result.png
+    └── comparison.jpg
+```
+
+```markdown
+# Passenger Flow Forecasting
+
+A MATLAB passenger flow forecasting project.
+```
+
+Do not create or edit manifest/catalog JSON for a V2 project. Do not edit its
+generated copy under `docs/content/`.
+
+## Publishing rules
+
+- The folder name is the permanent project ID. Changing the README title does
+  not change identity.
+- Every immediate project folder is scanned one level deep; nested directories
+  and symlinks are rejected.
+- Hidden files and unsupported regular files are ignored.
+- A project requires `README.md`, at least one non-empty UTF-8 `.m` file, and at
+  least one structurally valid PNG/JPG/JPEG image whose extension matches its
+  signature.
+- Code files and images are displayed in case-insensitive natural filename
+  order (`file2` before `file10`).
+- Image label, alternative text, and caption are derived from the filename.
+- New projects enter the single `published-projects` category.
+- Re-uploading the same folder updates that project. It never creates a suffixed
+  duplicate ID.
+- Deleting a source folder does not delete the published project. The build
+  fails and asks for explicit deletion handling.
+- V2 content uses English base fields and may omit `i18n.zh-Hant`; the existing
+  runtime falls back field-by-field to English. Existing V1 translations remain
+  untouched.
 
 ## Repository structure
 
 ```text
 matlab-web-demo/
-├── README.md
-├── AGENTS.md
+├── .github/workflows/publish-pages.yml
+├── projects/                    # V2 source of truth
+├── publisher/                   # deterministic standard-library builder
 ├── tests/
-│   ├── content-utils.test.js
-│   ├── content-contract.test.js
-│   ├── markdown.test.js
-│   └── http_smoke.py
-├── matlab/
-│   ├── main.m
-│   ├── generate_data.m
-│   ├── generate_plots.m
-│   ├── run_all.m
-│   ├── demo_project_paths.m
-│   ├── publish_project.m
-│   ├── export_demo_figure.m
-│   ├── style_demo_axes.m
-│   ├── tests/validate_all.m
-│   └── projects/
-│       ├── signal_denoising/
-│       ├── queue_simulation/
-│       └── heat_diffusion/
-└── docs/
-    ├── index.html
-    ├── css/style.css
-    ├── js/
-    │   ├── content-utils.js
-    │   ├── markdown.js
-    │   └── app.js
-    └── content/
-        ├── README.md
-        ├── catalog.json
-        └── projects/
-            ├── passenger-flow/
-            ├── signal-denoising/
-            ├── queue-simulation/
-            └── heat-diffusion/
+├── docs/
+│   ├── index.html
+│   ├── css/style.css
+│   ├── js/
+│   │   ├── content-utils.js
+│   │   ├── markdown.js
+│   │   ├── navigation-utils.js
+│   │   └── app.js
+│   └── content/                 # generated V2 + preserved V1 content
+└── matlab/                      # frozen/legacy V1 publishing pipeline
 ```
 
-Each directory below `docs/content/projects/` is a self-contained published
-case. It owns its manifest, results, plots, copied source, and optional Markdown
-files. A case must not reach into another case directory.
+## Cloud Publisher behavior
 
-## Quick start
+`publisher.build` reads the complete `projects/` tree, then works on a temporary
+copy of `docs/content`. It preserves all V1 categories, projects, order,
+translations, artifacts, and `defaultProject`; creates or reuses **Published
+Projects**; copies source files and images; generates two sections (`Overview`
+and `Source Code`); validates the complete staged website; and only then safely
+replaces `docs/content`.
 
-### 1. Generate every case with MATLAB
+If any source or generated file is invalid, the real published content is not
+changed. Output versions are content hashes. `lastUpdated` changes only when a
+project's source content changes, so repeated builds are deterministic.
 
-From the repository root in the MATLAB Command Window:
-
-```matlab
-addpath('matlab');
-run_all
-```
-
-Opening `matlab/run_all.m` in MATLAB and clicking **Run** performs the same
-operation. `run_all` invokes the existing passenger-flow entry point followed by
-the three independently named case entry points.
-
-Generate one case independently with the matching source directory on the
-MATLAB path:
-
-```matlab
-addpath('matlab');
-main                                      % Passenger Flow Forecasting
-
-addpath('matlab', 'matlab/projects/signal_denoising');
-signal_denoising_main
-
-addpath('matlab', 'matlab/projects/queue_simulation');
-queue_simulation_main
-
-addpath('matlab', 'matlab/projects/heat_diffusion');
-heat_diffusion_main
-```
-
-Every entry point derives output paths from `mfilename('fullpath')`; published
-paths do not depend on MATLAB's current working directory once the entry point
-is callable.
-
-Each run updates only that case:
-
-```text
-docs/content/projects/<project-id>/data/results.json
-docs/content/projects/<project-id>/plots/*.png
-docs/content/projects/<project-id>/code/*.m
-docs/content/projects/<project-id>/manifest.json metadata
-docs/content/catalog.json metadata
-```
-
-The publisher preserves the case manifest structure and updates `version` and
-`lastUpdated`. It also updates the matching nested catalog entry without
-changing category membership.
-
-### 2. Preview the repository
-
-Do not double-click `index.html`; browsers normally block JSON, MATLAB source,
-and Markdown requests on `file://` URLs.
-
-From the repository root:
+The production command is documented for developers and CI only:
 
 ```bash
-python3 -m http.server 8000 --directory docs
+python3 -m publisher.build --repository-root .
 ```
 
-Open [http://localhost:8000](http://localhost:8000).
+Maintainers publishing through GitHub do not run it.
 
-Use **EN** or **繁中** in the top bar. The language is stored in the URL and
-browser storage while the current case and section hash remain unchanged.
+## GitHub Actions and Pages
 
-**Refresh Content** reloads files already published by MATLAB. It never starts
-MATLAB or executes source code.
+The workflow builds and tests every relevant change. On a successful push to
+`main`, it uploads the tested `docs/` directory as a GitHub Pages artifact. It
+also commits only generated `docs/content/catalog.json` and
+`docs/content/projects/` changes back to `main`, using `GITHUB_TOKEN`, a clear
+`[skip ci]` message, and a race check. It never force-pushes and never stores a
+PAT. Test failures cause neither a generated-content commit nor a deployment.
 
-### 3. Deploy with GitHub Pages
+GitHub Pages must use **GitHub Actions** as its source after this workflow is
+merged. Repository-relative URLs continue to support
+`https://username.github.io/repository-name/`.
 
-1. Push the repository to GitHub's `main` branch.
-2. Open **Settings → Pages**.
-3. Select **Deploy from a branch**.
-4. Select branch **main** and folder **/docs**.
-5. Click **Save**.
+## Website behavior
 
-All resources use relative URLs, so deployment below
-`https://username.github.io/repository-name/` requires no path changes.
+- The sidebar is generated from `catalog.categories[].projects[]`; no category
+  or project names are hardcoded in HTML or JavaScript.
+- Multiple categories can remain expanded. The preference is stored locally,
+  while a deep-linked active project is always made visible.
+- Case section counts come from each project's manifest and share a request
+  cache with normal case loading. One failed manifest does not break the tree.
+- Hash routes remain `#/project/<project-id>/section/<section-id>`.
+- English and Traditional Chinese switching, existing localized files, content
+  blocks, section navigation, and repository-subpath URLs remain compatible.
 
-### 4. Update existing case results
+## Developer validation
 
-```text
-Edit or run the MATLAB case
-→ MATLAB refreshes that case's static assets and metadata
-→ Preview locally
-→ git add / commit / push
-→ GitHub Pages redeploys /docs
-```
-
-Routine analysis updates do not require changes to `index.html`, `style.css`,
-or `app.js`.
-
-## Validation
-
-The browser and content checks use only built-in Node.js and Python modules:
+The implementation uses the Python and Node.js standard libraries only:
 
 ```bash
+python3 -m unittest discover -s tests -p 'test_*.py' -v
+python3 -m publisher.build --repository-root .
 node --check docs/js/content-utils.js
+node --check docs/js/markdown.js
+node --check docs/js/navigation-utils.js
 node --check docs/js/app.js
 node --test tests/*.test.js
 python3 tests/http_smoke.py
 ```
 
-MATLAB validation regenerates all cases, checks MATLAB source, parses every
-result JSON file, and verifies every PNG:
+See `publisher/README.md` for builder details and `docs/content/README.md` for
+the preserved Catalog 2.2 / Manifest 2.1 contract.
+
+## Legacy V1 workflow (optional)
+
+The existing `matlab/publish_project.m`, `matlab/run_all.m`, V1 projects,
+results, manifests, and artifacts are retained but are not part of normal V2
+publishing. They must not be removed or invoked by the Cloud Publisher.
+
+For V1 maintenance only, an environment with MATLAB can still run:
 
 ```matlab
 addpath('matlab');
@@ -206,86 +180,15 @@ run_all
 run('matlab/tests/validate_all.m')
 ```
 
-## Schema 2.2 content model
-
-`docs/content/catalog.json` owns the category tree. Each category contains a
-`projects` array; every project entry represents one independent case and points
-to that case's manifest.
-
-```text
-catalog.categories[]
-└── category.projects[]
-    └── projects/<project-id>/manifest.json
-        └── sections[].blocks[]
-```
-
-The category controls discovery and grouping. The manifest controls only one
-case: its sections, artifacts, content order, and localized metadata. Section
-navigation never crosses case boundaries.
-
-See `docs/content/README.md` for the complete schema, block reference, and
-Markdown security rules.
-
-## Adding repository content
-
-### Add a category
-
-Add a stable kebab-case category object to `catalog.categories`. Put its English
-title and description in the base fields and Traditional Chinese overrides in
-`i18n.zh-Hant`. Move or add case entries within its `projects` array.
-
-### Add an independent case
-
-1. Create `docs/content/projects/<project-id>/` with its own manifest and assets.
-2. Register the case inside exactly one `catalog.categories[].projects[]` array.
-3. Give the MATLAB case a uniquely named entry point that uses the shared
-   publisher.
-4. Keep every artifact path inside that case directory.
-
-The case then appears in its category without adding an HTML page.
-
-### Add or reorder a case section
-
-Add or move an object in the manifest's `sections` array. Array order controls
-the case-section outline. Reorder `blocks` to change the content sequence.
-
-### Add MATLAB source, data, or a plot
-
-1. Put the generated file below the case's `code`, `data`, or `plots` directory.
-2. Register it once in the manifest artifact registry with a stable ID.
-3. Reference the artifact ID from the matching content block.
-4. Give every plot meaningful English and Traditional Chinese alternative text.
-
-### Add local Markdown
-
-Register a case-local `.md` file as a `markdown` artifact and reference it from
-a `markdown` block. Markdown is restricted to the safe subset documented in
-`docs/content/README.md`: no raw HTML, remote URLs, remote images, scripts,
-embedded frames, or parent-directory paths.
-
-## Error isolation
-
-- A catalog failure shows a repository-level startup error.
-- A category or case error does not invalidate unrelated cases.
-- A manifest failure is isolated to the selected case.
-- A malformed block becomes an error card while later blocks continue.
-- A missing PNG affects only that plot.
-- A missing `.m` or `.md` file affects only its viewer.
-- JSON and Markdown text must never be injected as untrusted HTML.
+The browser never executes MATLAB in either version.
 
 ## Troubleshooting
 
-### The browser cannot load repository content
-
-Confirm that `docs/content/catalog.json` is valid schema 2.2 JSON and preview
-through an HTTP server.
-
-### A plot, source file, result, or Markdown document is unavailable
-
-Run `matlab/run_all.m` or the relevant case entry point, then compare the
-artifact path in the case manifest with the generated filename, including case.
-
-### GitHub Pages still shows an older run
-
-Wait for the Pages deployment to finish and click **Refresh Content**. The case
-manifest version is appended to source and image requests.
+- **Workflow says the README has no H1:** add a non-empty `# Project Name`
+  heading.
+- **Invalid project ID:** rename the folder to lowercase ASCII kebab-case.
+- **Invalid image:** export a valid PNG or JPEG and keep the matching extension.
+- **Source project missing:** restore the accidentally removed source folder;
+  automatic deletion is intentionally disabled.
+- **Pages shows an older version:** wait for the workflow to finish, then use
+  **Refresh Content** on the website.

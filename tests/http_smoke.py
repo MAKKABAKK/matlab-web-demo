@@ -6,6 +6,7 @@ from __future__ import annotations
 import functools
 import http.server
 import json
+import os
 import pathlib
 import threading
 import urllib.error
@@ -14,7 +15,7 @@ import urllib.request
 
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-DOCS = ROOT / "docs"
+DOCS = pathlib.Path(os.environ.get("DOCS_ROOT", ROOT / "docs")).resolve()
 PREFIX = "/repository-name/"
 
 
@@ -52,7 +53,7 @@ def main() -> None:
     base_url = f"http://127.0.0.1:{server.server_port}{PREFIX}"
 
     try:
-        frontend_assets = ["", "css/style.css", "js/content-utils.js", "js/app.js"]
+        frontend_assets = ["", "css/style.css", "js/content-utils.js", "js/navigation-utils.js", "js/app.js"]
         if (DOCS / "js" / "markdown.js").exists():
             frontend_assets.append("js/markdown.js")
         for asset in frontend_assets:

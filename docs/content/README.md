@@ -152,7 +152,10 @@ The adjacent override applies to catalog headings, category entries, case
 entries, manifest headers, artifacts, sections, blocks, metric items, table
 columns, and step items. Arrays such as `paragraphs` are replaced as a whole.
 If one Traditional Chinese field is absent, only that field falls back to
-English.
+English. V2 Cloud Publisher projects may omit `i18n.zh-Hant` entirely because
+the maintainer supplies one README only. Existing V1 translations remain
+required and must not be removed; English must not be copied into an i18n object
+as a fake translation.
 
 Stable IDs, block types, artifact kinds, file paths, data paths, data keys,
 formats, tones, ratios, and derivation rules must not be translated.
@@ -167,7 +170,7 @@ Supported URL forms preserve the case-section hash:
 ?lang=zh-Hant#/project/passenger-flow/section/overview
 ```
 
-MATLAB-generated PNG text remains English. The surrounding label, caption, and
+Image text may remain English. The surrounding label, caption, and
 alternative text follow the selected web language.
 
 ## Artifact registry
@@ -199,8 +202,19 @@ Manifest schema 2.1 artifact kinds:
 - `plot`
 - `markdown`
 
-All plot artifacts require non-empty English and Traditional Chinese
-alternative text. A Markdown artifact must reference a case-local `.md` file.
+All plot artifacts require non-empty English alternative text and may reference
+a structurally valid `.png`, `.jpg`, or `.jpeg`. Traditional Chinese alternative
+text is used when supplied and otherwise falls back to English. A Markdown
+artifact must reference a case-local `.md` file.
+
+## V2 generated projects
+
+For normal V2 publication, maintainers edit only `projects/<project-id>/` and do
+not hand-author this contract. Cloud Publisher creates or updates entries under
+the `published-projects` category, preserving all V1 entries and
+`defaultProject`. It generates `Overview` plot blocks and `Source Code` MATLAB
+blocks in deterministic natural filename order. This section documents the
+shared output format; it does not introduce a second schema.
 
 ## Block reference
 

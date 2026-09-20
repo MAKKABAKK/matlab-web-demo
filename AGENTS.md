@@ -7,10 +7,16 @@
 - 分类负责发现与分组；manifest 只描述一个独立案例。
 - 网页只导航和展示静态文件，绝不运行 MATLAB，也不提供远端执行服务。
 - 新功能必须保持分类优先、案例独立且可非线性浏览的结构。
+- V2 新项目以 `projects/` 为唯一人工维护的 source of truth；
+  `docs/content/` 中对应内容由 Cloud Publisher 自动生成。
+- 正常 V2 发布只整理已提供的 `.m` 与 PNG/JPG/JPEG，绝不执行 MATLAB。
+- `matlab/publish_project.m`、`matlab/run_all.m`、现有四个 V1 项目与产物均为
+  LEGACY，必须保持兼容，不得由 V2 workflow 调用或删除。
 
 ## 技术边界
 
-- 仅使用 MATLAB、HTML、CSS、原生 JavaScript、JSON 与本地 Markdown。
+- 仅使用 Python 标准库、MATLAB、HTML、CSS、原生 JavaScript、JSON、
+  GitHub Actions 与本地 Markdown。
 - 不引入 npm 包、前端框架、CDN、后端、数据库或远端内容。
 - 网页资源必须使用相对路径，并可部署到 GitHub Pages 仓库子路径。
 - 单个代码文件不得超过 1000 行；接近上限时按职责拆分。
@@ -25,6 +31,8 @@
 - 用户可见内容优先由 catalog/manifest 驱动，不在 HTML 复制案例文案。
 - 英文保留在基础字段；繁体中文放在同一对象的 `i18n.zh-Hant`。
 - 英文是回退语言；缺少当前语言字段时逐字段回退英文。
+- V2 自动项目允许完全没有 `i18n.zh-Hant`，不得复制英文伪装成翻译；
+  现有 V1 翻译不得删除。
 - 稳定 ID、文件路径、数据键、block 类型和派生规则不得翻译。
 
 ## Markdown 安全边界
@@ -42,12 +50,24 @@
 
 ```bash
 node --check docs/js/content-utils.js
+node --check docs/js/markdown.js
+node --check docs/js/navigation-utils.js
 node --check docs/js/app.js
 node --test tests/*.test.js
 python3 tests/http_smoke.py
 ```
 
-每次修改 MATLAB 后，在已安装 MATLAB 的环境执行：
+每次修改 Cloud Publisher 或 `projects/` 后还必须执行：
+
+```bash
+python3 -m unittest discover -s tests -p 'test_*.py' -v
+python3 -m publisher.build --repository-root .
+```
+
+Publisher 必须先在 staging 中构建和验证，再替换真实内容。只允许自动
+CREATE/UPDATE；source folder 缺失时必须失败，不得自动 DELETE。
+
+只有明确修改 legacy MATLAB 后，才在已安装 MATLAB 的环境执行：
 
 ```matlab
 addpath('matlab');
